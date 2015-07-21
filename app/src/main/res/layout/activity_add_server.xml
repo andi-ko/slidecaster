@@ -1,0 +1,64 @@
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools" android:layout_width="match_parent"
+    android:layout_height="match_parent" android:paddingLeft="@dimen/activity_horizontal_margin"
+    android:paddingRight="@dimen/activity_horizontal_margin"
+    android:paddingTop="@dimen/activity_vertical_margin"
+    android:paddingBottom="@dimen/activity_vertical_margin"
+    tools:context="de.upb.slidecaster.AddServerActivity">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Server Address"
+        android:id="@+id/serverAddressTextView"
+        android:layout_below="@+id/serverAddressEditText"
+        android:layout_alignParentLeft="true" />
+
+    <EditText
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:id="@+id/serverAddressEditText"
+        android:layout_below="@+id/serverNameTextView"
+        android:layout_alignParentLeft="true"
+        android:layout_alignParentRight="true" />
+
+    <EditText
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:inputType="textPassword"
+        android:ems="10"
+        android:id="@+id/serverNameEditText"
+        android:layout_below="@+id/addServerInfoTextView"
+        android:layout_alignParentLeft="true"
+        android:layout_marginTop="26dp"
+        android:layout_alignRight="@+id/serverAddressEditText" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Server Name"
+        android:id="@+id/serverNameTextView"
+        android:layout_below="@+id/serverNameEditText"
+        android:layout_alignParentLeft="true" />
+
+    <Button
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Add Server"
+        android:id="@+id/connectToServerButton"
+        android:layout_marginTop="26dp"
+        android:onClick="connectToServer"
+        android:layout_below="@+id/serverAddressTextView"
+        android:layout_centerHorizontal="true" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textAppearance="?android:attr/textAppearanceLarge"
+        android:text="Enter a name for the server and the corresponding address"
+        android:id="@+id/addServerInfoTextView"
+        android:layout_alignParentTop="true"
+        android:layout_centerHorizontal="true" />
+
+
+</RelativeLayout>
