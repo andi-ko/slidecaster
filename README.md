@@ -1,5 +1,7 @@
 # slidecaster
 
+An Android app offering slidecast generation for mobile learning scenarios
+
 A 'slidecast' is a term that is used to describe an audio podcast that is combined with a slideshow - Wikipedia
 
 This is what the app will offer. You can:
