@@ -4,14 +4,35 @@
     android:paddingRight="@dimen/activity_horizontal_margin"
     android:paddingTop="@dimen/activity_vertical_margin"
     android:paddingBottom="@dimen/activity_vertical_margin"
-    tools:context="de.upb.slidecaster.AddServerActivity">
+    tools:context="de.upb.ddi.slidecaster.AddServerActivity">
 
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Server Address"
-        android:id="@+id/serverAddressTextView"
-        android:layout_below="@+id/serverAddressEditText"
+        android:textAppearance="?android:attr/textAppearanceLarge"
+        android:text="@string/addServerInfoTextViewText"
+        android:id="@+id/addServerInfoTextView"
+        android:layout_alignParentTop="true"
+        android:layout_centerHorizontal="true" />
+
+    <EditText
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:ems="10"
+        android:id="@+id/serverNameEditText"
+        android:inputType="text"
+        android:layout_below="@+id/addServerInfoTextView"
+        android:layout_alignParentLeft="true"
+        android:layout_alignParentStart="true"
+        android:layout_alignRight="@+id/addServerInfoTextView"
+        android:layout_alignEnd="@+id/addServerInfoTextView" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/serverNameTextViewText"
+        android:id="@+id/serverNameTextView"
+        android:layout_below="@+id/serverNameEditText"
         android:layout_alignParentLeft="true" />
 
     <EditText
@@ -20,44 +41,25 @@
         android:id="@+id/serverAddressEditText"
         android:layout_below="@+id/serverNameTextView"
         android:layout_alignParentLeft="true"
-        android:layout_alignParentRight="true" />
-
-    <EditText
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:inputType="textPassword"
-        android:ems="10"
-        android:id="@+id/serverNameEditText"
-        android:layout_below="@+id/addServerInfoTextView"
-        android:layout_alignParentLeft="true"
-        android:layout_marginTop="26dp"
-        android:layout_alignRight="@+id/serverAddressEditText" />
+        android:layout_alignParentRight="true"
+        android:inputType="text" />
 
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Server Name"
-        android:id="@+id/serverNameTextView"
-        android:layout_below="@+id/serverNameEditText"
+        android:text="@string/serverAddressTextViewText"
+        android:id="@+id/serverAddressTextView"
+        android:layout_below="@+id/serverAddressEditText"
         android:layout_alignParentLeft="true" />
 
     <Button
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Add Server"
-        android:id="@+id/connectToServerButton"
+        android:text="@string/addServerButtonText"
+        android:id="@+id/addServerButton"
         android:layout_marginTop="26dp"
-        android:onClick="connectToServer"
+        android:onClick="addServer"
         android:layout_below="@+id/serverAddressTextView"
-        android:layout_centerHorizontal="true" />
-
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:textAppearance="?android:attr/textAppearanceLarge"
-        android:text="Enter a name for the server and the corresponding address"
-        android:id="@+id/addServerInfoTextView"
-        android:layout_alignParentTop="true"
         android:layout_centerHorizontal="true" />
 
 

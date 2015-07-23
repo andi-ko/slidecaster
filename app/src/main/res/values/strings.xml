@@ -1,13 +1,19 @@
 <resources>
     <string name="app_name">Slidecaster</string>
-    <string name="hello_world">Hello world!</string>
+
     <string name="action_settings">Settings</string>
-    <string name="AddServerButtonName">Add Server</string>
     <string name="title_activity_add_server">Add Server</string>
 
     <string name="title_activity_editor">Editor</string>
-    <string name="dummy_button">Dummy Button</string>
-    <string name="dummy_content">DUMMY\nCONTENT</string>
     <string name="title_activity_collections">Collections</string>
     <string name="title_activity_projects">Projects</string>
+    <string name="title_activity_login">Login</string>
+
+    <string name="serverListFileName">servers.xml</string>
+    <string name="defaultServerName">google-datastore</string>
+    <string name="defaultServerAddress">ds059702.mongolab.com:59702/google-datastore</string>
+    <string name="addServerButtonText">Add Server</string>
+    <string name="addServerInfoTextViewText">Enter a name for the server and the corresponding address</string>
+    <string name="serverAddressTextViewText">Server Address</string>
+    <string name="serverNameTextViewText">Server Name</string>
 </resources>
