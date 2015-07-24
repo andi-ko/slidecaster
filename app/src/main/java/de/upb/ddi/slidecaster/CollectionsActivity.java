@@ -10,17 +10,20 @@ import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
 
+import java.util.ArrayList;
+
 
 public class CollectionsActivity extends Activity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        System.out.println("=========================== CollectionsActivity: onCreate(): begin ===========================");
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_collections);
 
         final ListView collectionsListView = (ListView)findViewById(R.id.collectionsListView);
 
-        String[] collectionNames = new String[] { "Example Collection 1", "Example Collection 2" };
+        ArrayList<String> collectionNames = getIntent().getStringArrayListExtra("COLLECTION_NAMES");
 
         ArrayAdapter<String> adapter = new ArrayAdapter<>(this,
                 android.R.layout.simple_list_item_1, collectionNames);
@@ -55,5 +58,13 @@ public class CollectionsActivity extends Activity {
         }
 
         return super.onOptionsItemSelected(item);
+    }
+
+    @Override
+    public void onBackPressed()
+    {
+        super.onBackPressed();
+        startActivity(new Intent(CollectionsActivity.this, MainActivity.class));
+        finish();
     }
 }

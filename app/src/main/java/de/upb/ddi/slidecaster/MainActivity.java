@@ -48,11 +48,10 @@ public class MainActivity extends Activity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        System.out.println("=========================== MainActivity: onCreate(): begin ===========================");
         super.onCreate(savedInstanceState);
 
         setContentView(R.layout.activity_main);
-
-        System.out.println("=========================== MainActivity: onCreate(): view set ===========================");
 
         serverListFileName = getString(R.string.serverListFileName);
         defaulServerName = getString(R.string.defaultServerName);
@@ -78,9 +77,13 @@ public class MainActivity extends Activity {
 
         serverListView.setAdapter(adapter);
 
+        onNewIntent(new Intent());
+
         serverListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             public void onItemClick(AdapterView<?> parent, View v, int position, long id) {
                 Intent intent = new Intent(MainActivity.this, LoginActivity.class);
+                intent.putExtra("SERVER_ADDRESS", serverAdresses.get(position));
+                intent.putExtra("SERVER_NAME", serverNames.get(position));
                 startActivity(intent);
             }
         });
@@ -119,8 +122,6 @@ public class MainActivity extends Activity {
         System.out.println("=========================== MainActivity: firstRun() ===========================");
 
         try {
-            System.out.println("=========================== MainActivity: firstRun(): serverListFile created ===========================");
-
             FileOutputStream fos;
 
             fos = openFileOutput(serverListFileName, Context.MODE_APPEND);
@@ -255,7 +256,7 @@ public class MainActivity extends Activity {
 
                     if (serverAddress != null) {
                         if (!serverAddress.isEmpty())
-                            serverAdresses.add(serverName);
+                            serverAdresses.add(serverAddress);
                     }
                 }
             }

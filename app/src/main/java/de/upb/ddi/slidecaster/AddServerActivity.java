@@ -44,6 +44,7 @@ public class AddServerActivity extends Activity {
             Intent intent = new Intent(this, AddServerActivity.class);
             intent.putExtra("SERVER_ADDRESS", serverAddress);
             intent.putExtra("SERVER_NAME", serverName);
+
             // Set The Result in Intent
             setResult(2, intent);
             // finish The activity

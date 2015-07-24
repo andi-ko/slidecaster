@@ -15,6 +15,7 @@ public class ProjectsActivity extends Activity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        System.out.println("=========================== ProjectsActivity: onCreate(): begin ===========================");
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_projects);
 

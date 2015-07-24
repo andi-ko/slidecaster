@@ -2,10 +2,15 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="de.upb.ddi.slidecaster" >
 
-    <!-- To auto-complete the email text field in the login form with the user's emails -->
-    <uses-permission android:name="android.permission.GET_ACCOUNTS" />
-    <uses-permission android:name="android.permission.READ_PROFILE" />
-    <uses-permission android:name="android.permission.READ_CONTACTS" />
+    <uses-feature android:name="android.hardware.camera.any"
+        android:required="true" />
+
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
 
     <application
         android:allowBackup="true"
@@ -14,7 +19,8 @@
         android:theme="@style/AppTheme" >
         <activity
             android:name=".MainActivity"
-            android:label="@string/app_name" >
+            android:label="@string/app_name"
+            android:launchMode="singleTop" >
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
@@ -23,7 +29,8 @@
         <activity
             android:name=".AddServerActivity"
             android:label="@string/title_activity_add_server"
-            android:parentActivityName=".MainActivity" >
+            android:parentActivityName=".MainActivity"
+            android:launchMode="singleTop" >
             <meta-data
                 android:name="android.support.PARENT_ACTIVITY"
                 android:value="de.upb.ddi.slidecaster.MainActivity" />
@@ -31,7 +38,8 @@
         <activity
             android:name=".LoginActivity"
             android:label="@string/title_activity_login"
-            android:parentActivityName=".MainActivity" >
+            android:parentActivityName=".MainActivity"
+            android:launchMode="singleTop" >
             <meta-data
                 android:name="android.support.PARENT_ACTIVITY"
                 android:value="de.upb.ddi.slidecaster.MainActivity" />
@@ -39,7 +47,8 @@
         <activity
             android:name=".CollectionsActivity"
             android:label="@string/title_activity_collections"
-            android:parentActivityName=".MainActivity" >
+            android:parentActivityName=".MainActivity"
+            android:launchMode="singleTop" >
             <meta-data
                 android:name="android.support.PARENT_ACTIVITY"
                 android:value="de.upb.ddi.slidecaster.MainActivity" />
@@ -47,7 +56,8 @@
         <activity
             android:name=".ProjectsActivity"
             android:label="@string/title_activity_projects"
-            android:parentActivityName=".CollectionsActivity" >
+            android:parentActivityName=".CollectionsActivity"
+            android:launchMode="singleTop" >
             <meta-data
                 android:name="android.support.PARENT_ACTIVITY"
                 android:value="de.upb.ddi.slidecaster.CollectionsActivity" />
@@ -55,11 +65,11 @@
         <activity
             android:name=".EditorActivity"
             android:label="Editor"
-            android:parentActivityName=".CollectionsActivity" >
+            android:parentActivityName=".ProjectsActivity"
+            android:launchMode="singleTop" >
             <meta-data
                 android:name="android.support.PARENT_ACTIVITY"
-                android:value="de.upb.ddi.slidecaster.CollectionsActivity" />
+                android:value="de.upb.ddi.slidecaster.ProjectsActivity" />
         </activity>
     </application>
-
 </manifest>
