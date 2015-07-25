@@ -9,89 +9,83 @@
     <Button
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Record Audio"
-        android:id="@+id/recordAudioButton"
-        android:layout_alignParentTop="true"
-        android:layout_toLeftOf="@+id/publishButton" />
-
-    <Button
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="+"
-        android:id="@+id/addPictureButton"
-        android:layout_above="@+id/playButton"
-        android:layout_alignParentRight="true" />
-
-    <Button
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
         android:text="Publish"
         android:id="@+id/publishButton"
-        android:layout_alignParentTop="true"
-        android:layout_alignParentRight="true" />
+        android:layout_alignParentRight="true"
+        android:layout_alignParentEnd="true" />
 
     <SeekBar
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:id="@+id/seekBar"
-        android:layout_alignParentBottom="true"
+        android:indeterminate="false"
+        android:layout_alignTop="@+id/playAudioButton"
         android:layout_alignParentLeft="true"
-        android:layout_toLeftOf="@+id/addPictureButton"
-        android:indeterminate="false" />
+        android:layout_alignParentStart="true"
+        android:layout_toLeftOf="@+id/playAudioButton"
+        android:layout_toStartOf="@+id/playAudioButton" />
 
-    <EditText
+    <ImageButton
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:id="@+id/projectNameEditText"
-        android:layout_alignParentTop="true"
-        android:layout_toRightOf="@+id/projectNameTextView"
-        android:layout_toLeftOf="@+id/recordAudioButton" />
+        android:id="@+id/playAudioButton"
+        android:src="@android:drawable/ic_media_play"
+        android:layout_alignParentBottom="true"
+        android:layout_alignParentRight="true"
+        android:layout_alignParentEnd="true" />
+
+    <ImageButton
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:id="@+id/recordAudioButton"
+        android:src="@android:drawable/ic_btn_speak_now"
+        android:layout_alignTop="@+id/publishButton"
+        android:layout_alignParentLeft="true"
+        android:layout_alignParentStart="true" />
+
+    <ImageButton
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:id="@+id/takePictureButton"
+        android:src="@android:drawable/ic_menu_camera"
+        android:layout_alignTop="@+id/recordAudioButton"
+        android:layout_toRightOf="@+id/recordAudioButton"
+        android:layout_toEndOf="@+id/recordAudioButton" />
+
+    <ImageButton
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:id="@+id/imageButton"
+        android:src="@android:drawable/ic_input_add"
+        android:layout_alignTop="@+id/takePictureButton"
+        android:layout_toRightOf="@+id/takePictureButton"
+        android:layout_toEndOf="@+id/takePictureButton" />
 
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:textAppearance="?android:attr/textAppearanceMedium"
-        android:text="Project Name:"
-        android:id="@+id/projectNameTextView"
-        android:layout_alignBaseline="@+id/recordAudioButton"
-        android:layout_alignBottom="@+id/recordAudioButton"
-        android:layout_alignParentLeft="true" />
+        android:text="00:00"
+        android:id="@+id/playingTime"
+        android:layout_below="@+id/seekBar"
+        android:layout_alignParentLeft="true"
+        android:layout_alignParentStart="true" />
 
-    <Button
+    <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Play"
-        android:id="@+id/playButton"
+        android:text="-00:00"
+        android:id="@+id/remainingTime"
         android:layout_alignParentBottom="true"
-        android:layout_toRightOf="@+id/seekBar" />
+        android:layout_toLeftOf="@+id/playAudioButton"
+        android:layout_toStartOf="@+id/playAudioButton" />
 
-    <LinearLayout
-        android:orientation="horizontal"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:layout_alignParentLeft="true"
-        android:layout_above="@+id/seekBar"
-        android:layout_toLeftOf="@+id/addPictureButton"
+    <ListView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:id="@+id/imageListView"
         android:layout_below="@+id/recordAudioButton"
-        android:id="@+id/linearEditor">
-
-        <ImageView
-            android:layout_width="162dp"
-            android:layout_height="66dp"
-            android:id="@+id/imageView"
-            android:src="@drawable/chrysanthemum"
-            android:layout_gravity="bottom" />
-
-        <ImageView
-            android:layout_width="146dp"
-            android:layout_height="66dp"
-            android:id="@+id/imageView2"
-            android:src="@drawable/tulips"
-            android:layout_below="@+id/addPictureButton"
-            android:layout_alignParentLeft="true"
-            android:layout_marginTop="53dp"
-            android:layout_gravity="bottom" />
-
-    </LinearLayout>
+        android:layout_alignParentLeft="true"
+        android:layout_alignParentStart="true"
+        android:layout_above="@+id/seekBar" />
 
 </RelativeLayout>
