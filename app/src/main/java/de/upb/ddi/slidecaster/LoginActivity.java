@@ -2,6 +2,7 @@ package de.upb.ddi.slidecaster;
 
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.app.ProgressDialog;
 import android.content.Intent;
 import android.os.Bundle;
 import android.support.v4.app.NavUtils;
@@ -26,6 +27,8 @@ public class LoginActivity extends Activity {
     String serverName;
     String serverAddress;
 
+    private ProgressDialog dialog;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         System.out.println("=========================== LoginActivity: onCreate(): begin ===========================");
@@ -41,9 +44,21 @@ public class LoginActivity extends Activity {
 
     private class CollectionFetchTask extends DatabaseTask {
 
+        @Override
+        protected String[] doInBackground(String... params) {
+            if (connect(params[0])) {
+                return getCollections();
+            }
+            return null;
+        }
+
         /** The system calls this to perform work in the UI thread and delivers
          * the result from doInBackground() */
         protected void onPostExecute(String[] result) {
+
+            if (dialog != null) {
+                dialog.dismiss();
+            }
 
             if (result == null) {
                 AlertDialog.Builder adb=new AlertDialog.Builder(LoginActivity.this);
@@ -63,29 +78,41 @@ public class LoginActivity extends Activity {
             }
         }
 
-        @Override
-        protected String[] process() {
-            MongoIterable<String> allCollections = getMongoDB().listCollectionNames();
+        protected String[] getCollections() {
+            try {
+                MongoIterable<String> allCollections = getMongoDB().listCollectionNames();
 
-            ArrayList<String> publicCollections = new ArrayList<>();
+                ArrayList<String> publicCollections = new ArrayList<>();
 
-            for (String collection : allCollections) {
-                System.out.println("Collection name: " + collection);
-                if (!collection.equals("system.indexes")) {
-                    publicCollections.add(collection);
+                for (String collection : allCollections) {
+                    System.out.println("Collection name: " + collection);
+                    if (!collection.equals("system.indexes")) {
+                        publicCollections.add(collection);
+                    }
                 }
-            }
-            String[] result = new String[publicCollections.size()];
+                String[] result = new String[publicCollections.size()];
 
-            return publicCollections.toArray(result);
+                return publicCollections.toArray(result);
+            } catch (Exception e) {
+                System.err.println(e.getMessage());
+            }
+            return null;
         }
     }
 
     public void dbLogin(View view) {
+        dialog = new ProgressDialog(LoginActivity.this);
+        dialog.setProgressStyle(ProgressDialog.STYLE_SPINNER);
+        dialog.setMessage("Connecting, please wait...");
+        dialog.setIndeterminate(true);
+        dialog.setCanceledOnTouchOutside(false);
+        dialog.show();
+
         EditText loginNameEditText = (EditText) findViewById(R.id.loginNameEditText);
         String username = loginNameEditText.getText().toString();
         EditText loginPasswordEditText = (EditText) findViewById(R.id.loginPasswordEditText);
         String password = loginPasswordEditText.getText().toString();
+
 
         CollectionFetchTask task = new CollectionFetchTask();
         task.execute("mongodb://"+username+":"+password+"@"+serverAddress);

@@ -8,10 +8,15 @@ import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.MongoIterable;
 
 public abstract class DatabaseTask extends AsyncTask<String, Void, String[]> {
-    /** The system calls this to perform work in a worker thread and
-     * delivers it the parameters given to AsyncTask.execute() */
 
     static MongoClient mongoClient;
+    static MongoDatabase mongoDB;
+
+    public static void setTextUri(String textUri) {
+        DatabaseTask.textUri = textUri;
+    }
+
+    static String textUri;
 
     public static MongoDatabase getMongoDB() {
         return mongoDB;
@@ -25,63 +30,55 @@ public abstract class DatabaseTask extends AsyncTask<String, Void, String[]> {
         return textUri;
     }
 
-    public static boolean isConnected() {
-        return isConnected;
-    }
+    /** The system calls this to perform work in a worker thread and
+     * delivers it the parameters given to AsyncTask.execute() */
 
-    static MongoDatabase mongoDB;
-    static String textUri;
+    protected boolean isConnected() {
 
-    static boolean isConnected = false;
-
-    @Override
-    protected String[] doInBackground(String... params) {
-
-        if (params.length > 0) {
-            textUri = params[0];
-        }
-
-        if (mongoClient != null) {
+        if (mongoDB != null) {
             try {
-                mongoClient.listDatabaseNames();
+                mongoDB.listCollectionNames();
+                return true;
             } catch (Exception e) {
-                isConnected = false;
+                System.err.println(e.getMessage());
             }
         }
-        if (!isConnected) {
-            connect(textUri);
-        }
-        try {
-            return process();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return null;
+        return false;
     }
 
-    protected abstract String[] process();
+    protected boolean reconnect () {
+        return textUri != null && connect(textUri);
+    }
 
-    protected void connect (String textUri) {
+    protected boolean assertConnection () {
+        System.out.println("assert connection");
+        return isConnected() || reconnect();
+    }
+
+    protected boolean connect (String textUri) {
+
+        mongoDB = null;
+        mongoClient = null;
+        setTextUri(textUri);
 
         //<dbuser>:<dbpassword>@ds059702.mongolab.com:59702/google-datastore
 
-        System.out.println(textUri);
-
         MongoClientURI uri = new MongoClientURI(textUri);
 
-        System.out.println(textUri);
-
         try {
+            System.out.println("Connecting to: "+textUri);
+
             mongoClient = new MongoClient(uri);
 
-            System.out.println("Client created: "+mongoClient.getConnectPoint());
+            System.out.println("Connected to: "+mongoClient.getConnectPoint());
 
             mongoDB = mongoClient.getDatabase(uri.getDatabase());
 
-            isConnected = true;
+            return true;
 
         }  catch (Exception e) {
             e.printStackTrace();
         }
+        return false;
     }
 }
