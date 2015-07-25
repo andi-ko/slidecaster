@@ -31,6 +31,7 @@ public class CollectionsActivity extends Activity {
 
     private ArrayList<String> collectionNames;
 
+    private String serverName;
     private ProgressDialog dialog;
 
     @Override
@@ -41,7 +42,8 @@ public class CollectionsActivity extends Activity {
 
         final ListView collectionsListView = (ListView)findViewById(R.id.collectionsListView);
 
-        collectionNames = getIntent().getStringArrayListExtra("COLLECTION_NAMES");
+        serverName = getIntent().getStringExtra(getString(R.string.stringExtraServerName));
+        collectionNames = getIntent().getStringArrayListExtra(getString(R.string.stringExtraCollectionNameList));
 
         ArrayAdapter<String> adapter = new ArrayAdapter<>(this,
                 android.R.layout.simple_list_item_1, collectionNames);
@@ -67,10 +69,13 @@ public class CollectionsActivity extends Activity {
 
     private class ProjectsFetchTask extends DatabaseTask {
 
+        private String collectionName;
+
         @Override
         protected String[] doInBackground(String... params) {
             if (assertConnection()) {
-                return getProjects(params[0]);
+                collectionName = params[0];
+                return getProjects(collectionName);
             }
             return null;
         }
@@ -96,7 +101,10 @@ public class CollectionsActivity extends Activity {
 
                 ArrayList<String> projects = new ArrayList<>(Arrays.asList(result));
 
-                intent.putStringArrayListExtra("PROJECT_NAMES", projects);
+                intent.putStringArrayListExtra(getString(R.string.stringExtraProjectNameList), projects);
+                intent.putExtra(getString(R.string.stringExtraServerName), serverName);
+                intent.putExtra(getString(R.string.stringExtraCollectionName), collectionName);
+
                 startActivity(intent);
             }
         }

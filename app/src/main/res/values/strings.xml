@@ -12,8 +12,19 @@
     <string name="serverListFileName">servers.xml</string>
     <string name="defaultServerName">google-datastore</string>
     <string name="defaultServerAddress">ds059702.mongolab.com:59702/google-datastore</string>
+    <string name="defaultServerGuestUser">guest</string>
+    <string name="defaultServerGuestPassword">password</string>
+
     <string name="addServerButtonText">Add Server</string>
     <string name="addServerInfoTextViewText">Enter a name for the server and the corresponding address</string>
     <string name="serverAddressTextViewText">Server Address</string>
     <string name="serverNameTextViewText">Server Name</string>
+
+    <string name="stringExtraServerName">SERVER_NAME</string>
+    <string name="stringExtraServerAddress">SERVER_ADDRESS</string>
+    <string name="stringExtraCollectionName">COLLECTION_NAME</string>
+    <string name="stringExtraCollectionNameList">COLLECTION_NAME_LIST</string>
+    <string name="stringExtraProjectName">PROJECT_NAME</string>
+    <string name="stringExtraProjectReleaseName">PROJECT_NAME_RELEASE</string>
+    <string name="stringExtraProjectNameList">PROJECT_NAME_LIST</string>
 </resources>

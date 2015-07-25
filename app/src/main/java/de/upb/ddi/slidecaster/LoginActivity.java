@@ -10,6 +10,7 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.EditText;
+import android.widget.TextView;
 
 import com.mongodb.MongoClient;
 import com.mongodb.MongoClientURI;
@@ -37,8 +38,16 @@ public class LoginActivity extends Activity {
 
         Bundle extras = getIntent().getExtras();
         if (extras != null) {
-            serverName=extras.getString("SERVER_NAME");
-            serverAddress=extras.getString("SERVER_ADDRESS");
+            serverName=extras.getString(getString(R.string.stringExtraServerName));
+            serverAddress=extras.getString(getString(R.string.stringExtraServerAddress));
+        }
+        if (serverName.equals(getString(R.string.defaultServerName))) {
+            EditText loginNameEditText = (EditText) findViewById(R.id.loginNameEditText);
+            System.out.println(loginNameEditText.getText());
+            loginNameEditText.setText(getString(R.string.defaultServerGuestUser), TextView.BufferType.EDITABLE);
+            EditText loginPasswordEditText = (EditText) findViewById(R.id.loginPasswordEditText);
+            System.out.println(loginPasswordEditText.getText());
+            loginPasswordEditText.setText(getString(R.string.defaultServerGuestPassword), TextView.BufferType.EDITABLE);
         }
     }
 
@@ -73,7 +82,8 @@ public class LoginActivity extends Activity {
 
                 ArrayList<String> publicCollections = new ArrayList<>(Arrays.asList(result));
 
-                intent.putStringArrayListExtra("COLLECTION_NAMES", publicCollections);
+                intent.putStringArrayListExtra(getString(R.string.stringExtraCollectionNameList), publicCollections);
+                intent.putExtra(getString(R.string.stringExtraServerName), serverName);
                 startActivity(intent);
             }
         }

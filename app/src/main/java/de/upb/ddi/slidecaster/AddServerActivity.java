@@ -42,8 +42,8 @@ public class AddServerActivity extends Activity {
         }
         else {
             Intent intent = new Intent(this, AddServerActivity.class);
-            intent.putExtra("SERVER_ADDRESS", serverAddress);
-            intent.putExtra("SERVER_NAME", serverName);
+            intent.putExtra(getString(R.string.stringExtraServerAddress), serverAddress);
+            intent.putExtra(getString(R.string.stringExtraServerName), serverName);
 
             // Set The Result in Intent
             setResult(2, intent);

@@ -22,8 +22,7 @@
         android:layout_below="@+id/loginTextView"
         android:layout_marginTop="27dp"
         android:layout_alignParentLeft="true"
-        android:layout_alignRight="@+id/loginTextView"
-        android:text="guest" />
+        android:layout_alignRight="@+id/loginTextView" />
 
     <TextView
         android:layout_width="wrap_content"
@@ -41,8 +40,7 @@
         android:id="@+id/loginPasswordEditText"
         android:layout_below="@+id/textView"
         android:layout_alignParentLeft="true"
-        android:layout_alignRight="@+id/loginNameEditText"
-        android:text="password" />
+        android:layout_alignRight="@+id/loginNameEditText" />
 
     <TextView
         android:layout_width="wrap_content"

@@ -7,20 +7,27 @@ import android.os.Bundle;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.EditText;
+import android.widget.TextView;
 
 
 public class EditorActivity extends Activity {
 
-    Intent intent;
+    private String serverName;
+    private String collectionName;
+    private String projectName;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
-
         setContentView(R.layout.activity_editor);
 
-        intent = getIntent();
+        serverName = getIntent().getStringExtra(getString(R.string.stringExtraServerName));
+        collectionName = getIntent().getStringExtra(getString(R.string.stringExtraCollectionName));
+        projectName = getIntent().getStringExtra(getString(R.string.stringExtraProjectName));
+
+        EditText projectNameEditText = (EditText) findViewById(R.id.projectNameEditText);
+        projectNameEditText.setText(projectName, TextView.BufferType.EDITABLE);
     }
 
     @Override
@@ -47,14 +54,6 @@ public class EditorActivity extends Activity {
 
     @Override
     public void finish() {
-        if (intent.getBooleanExtra("CREATE_PROJECT",false)) {
-            EditText projectNameEditText = (EditText) findViewById(R.id.projectNameEditText);
-            String projectName = projectNameEditText.getText().toString();
-            Intent intent = new Intent(this, AddServerActivity.class);
-            intent.putExtra("PROJECT_NAME", projectName);
-            // Set The Result in Intent
-            setResult(2, intent);
-        }
         safeProject();
         // finish The activity
         super.finish();

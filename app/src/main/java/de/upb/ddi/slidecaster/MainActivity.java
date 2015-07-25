@@ -40,7 +40,6 @@ public class MainActivity extends Activity {
     private ArrayList<String> serverNames;
     private ArrayList<String> serverAdresses;
 
-    private String serverListFileName;
     private String defaulServerName;
     private String defaulServerAddress;
 
@@ -53,15 +52,16 @@ public class MainActivity extends Activity {
 
         setContentView(R.layout.activity_main);
 
-        serverListFileName = getString(R.string.serverListFileName);
+        String serverListFileName = getString(R.string.serverListFileName);
         defaulServerName = getString(R.string.defaultServerName);
         defaulServerAddress = getString(R.string.defaultServerAddress);
 
         serverListFile = new File(getBaseContext().getFilesDir(), serverListFileName);
 
+        // serverListFile.delete();
+
         try {
             if (serverListFile.createNewFile()) {
-                System.out.println("=========================== MainActivity: onCreate(): new serverListFile created ===========================");
                 firstRun(serverListFile);
             }
         } catch (IOException e) {
@@ -77,13 +77,11 @@ public class MainActivity extends Activity {
 
         serverListView.setAdapter(adapter);
 
-        onNewIntent(new Intent());
-
         serverListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             public void onItemClick(AdapterView<?> parent, View v, int position, long id) {
                 Intent intent = new Intent(MainActivity.this, LoginActivity.class);
-                intent.putExtra("SERVER_ADDRESS", serverAdresses.get(position));
-                intent.putExtra("SERVER_NAME", serverNames.get(position));
+                intent.putExtra(getString(R.string.stringExtraServerAddress), serverAdresses.get(position));
+                intent.putExtra(getString(R.string.stringExtraServerName), serverNames.get(position));
                 startActivity(intent);
             }
         });
@@ -103,6 +101,7 @@ public class MainActivity extends Activity {
                     adb.setTitle("Delete?");
                     adb.setMessage("Are you sure you want to delete " + serverNames.get(position));
                     final int positionToRemove = position;
+
                     adb.setNegativeButton("Cancel", null);
                     adb.setPositiveButton("Ok", new AlertDialog.OnClickListener() {
                         public void onClick(DialogInterface dialog, int which) {
@@ -122,9 +121,7 @@ public class MainActivity extends Activity {
         System.out.println("=========================== MainActivity: firstRun() ===========================");
 
         try {
-            FileOutputStream fos;
-
-            fos = openFileOutput(serverListFileName, Context.MODE_APPEND);
+            FileOutputStream fos = new FileOutputStream(serverListFile);
 
             XmlSerializer serializer = Xml.newSerializer();
             serializer.setOutput(fos, "UTF-8");
@@ -165,10 +162,16 @@ public class MainActivity extends Activity {
         if(requestCode==2 && data != null)
         {
             // fetch the message String
-            String serverName=data.getStringExtra("SERVER_NAME");
-            String serverAddress=data.getStringExtra("SERVER_ADDRESS");
+            String serverName=data.getStringExtra(getString(R.string.stringExtraServerName));
+            String serverAddress=data.getStringExtra(getString(R.string.stringExtraServerAddress));
 
-            addServerToList(serverName, serverAddress);
+            if (!addServerToList(serverName, serverAddress)) {
+                AlertDialog.Builder adb=new AlertDialog.Builder(MainActivity.this);
+
+                adb.setTitle("Error");
+                adb.setMessage("Server name already exists");
+                adb.show();
+            }
 
             final ListView serverListView = (ListView)findViewById(R.id.serverListView);
 
@@ -337,7 +340,7 @@ public class MainActivity extends Activity {
         }
     }
 
-    public void addServerToList(String serverName, String serverAddress) {
+    public boolean addServerToList(String serverName, String serverAddress) {
 
         System.out.println("=========================== MainActivity: addServerToList(): begin ===========================");
 
@@ -348,6 +351,10 @@ public class MainActivity extends Activity {
             System.out.println(serverName);
 
             System.out.println(serverAddress);
+
+            if (serverNames.indexOf(serverName) != -1) {
+                return false;
+            }
 
             serverNames.add(serverName);
             serverAdresses.add(serverAddress);
@@ -398,5 +405,6 @@ public class MainActivity extends Activity {
                 System.err.println(ioe.getMessage());
             }
         }
+        return true;
     }
 }

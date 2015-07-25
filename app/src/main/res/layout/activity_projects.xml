@@ -12,7 +12,8 @@
         android:text="Create Project"
         android:id="@+id/createProjectButton"
         android:layout_alignParentTop="true"
-        android:layout_alignParentLeft="true" />
+        android:layout_alignParentLeft="true"
+        android:onClick="createProject" />
 
     <ListView
         android:layout_width="wrap_content"
