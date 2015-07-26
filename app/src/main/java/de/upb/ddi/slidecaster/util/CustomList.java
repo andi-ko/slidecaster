@@ -2,6 +2,8 @@ package de.upb.ddi.slidecaster.util;
 
 
 import android.app.Activity;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -21,9 +23,9 @@ public class CustomList extends ArrayAdapter<String>{
 
     private final Activity context;
     private final ArrayList<String> uriList;
-    private final ArrayList<Time> displayDurationList;
+    private final ArrayList<Integer> displayDurationList;
 
-    public CustomList(Activity context, ArrayList<String> uriList, ArrayList<Time> displayDurationList) {
+    public CustomList(Activity context, ArrayList<String> uriList, ArrayList<Integer> displayDurationList) {
         super(context, R.layout.list_single, uriList);
         this.context = context;
         this.uriList = uriList;
@@ -36,8 +38,34 @@ public class CustomList extends ArrayAdapter<String>{
         TextView txtTitle = (TextView) rowView.findViewById(R.id.txt);
         ImageView imageView = (ImageView) rowView.findViewById(R.id.img);
 
-        txtTitle.setText("show: " + displayDurationList.get(position).toString());
-        imageView.setImageURI(Uri.parse(uriList.get(position)));
+        int seconds = displayDurationList.get(position);
+
+        txtTitle.setText("show for: " + seconds + "s");
+        setPic(imageView, uriList.get(position));
         return rowView;
+    }
+
+    private void setPic(ImageView mImageView, String mCurrentPhotoPath) {
+        // Get the dimensions of the View
+        int targetW = mImageView.getWidth();
+        int targetH = mImageView.getHeight();
+
+        // Get the dimensions of the bitmap
+        BitmapFactory.Options bmOptions = new BitmapFactory.Options();
+        bmOptions.inJustDecodeBounds = true;
+        BitmapFactory.decodeFile(mCurrentPhotoPath, bmOptions);
+        int photoW = bmOptions.outWidth;
+        int photoH = bmOptions.outHeight;
+
+        // Determine how much to scale down the image
+        int scaleFactor = Math.min(photoW / targetW, photoH/targetH);
+
+        // Decode the image file into a Bitmap sized to fill the View
+        bmOptions.inJustDecodeBounds = false;
+        bmOptions.inSampleSize = scaleFactor;
+        // bmOptions.inPurgeable = true;
+
+        Bitmap bitmap = BitmapFactory.decodeFile(mCurrentPhotoPath, bmOptions);
+        mImageView.setImageBitmap(bitmap);
     }
 }
