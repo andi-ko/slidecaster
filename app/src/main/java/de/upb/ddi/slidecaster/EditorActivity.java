@@ -3,6 +3,7 @@ package de.upb.ddi.slidecaster;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.Intent;
+import android.content.pm.ActivityInfo;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
@@ -54,15 +55,22 @@ public class EditorActivity extends Activity {
     private String newImageFileName;
 
     private File projectFile;
+
     private String audioFileUri;
+
+    private int audioDuration;
+    private int totalDisplayDuration;
 
     static final int REQUEST_IMAGE_CAPTURE = 1;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        //setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
+        setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
         setContentView(R.layout.activity_editor);
+
+        audioDuration = 0;
+        totalDisplayDuration = 0;
 
         serverName = getIntent().getStringExtra(getString(R.string.stringExtraServerName));
         collectionName = getIntent().getStringExtra(getString(R.string.stringExtraCollectionName));
@@ -73,8 +81,10 @@ public class EditorActivity extends Activity {
 
         projectFile = new File(this.getFilesDir().getPath()+"/"+serverName+"/"+collectionName+"/"+projectName+".xml");
 
-        if (projectFile.mkdirs()) {
-            System.out.println(projectFile.getAbsolutePath());
+        // System.out.println(projectFile.delete());
+
+        if (projectFile.getParentFile().mkdirs()) {
+            System.out.println("path created");
         }
 
         try {
@@ -112,9 +122,11 @@ public class EditorActivity extends Activity {
             if (Environment.MEDIA_MOUNTED.equals(state) && extDir != null) {
 
                 try {
-                    File newImageFile = new File(extDir.getAbsolutePath() + serverName + "/" + collectionName + "/" + projectName + "/" + uriList.size() + ".jpg");
+                    File newImageFile = new File(extDir.getAbsolutePath()+ "/" + serverName + "/" + collectionName + "/" + projectName + "/" + uriList.size() + ".jpg");
 
-                    if (newImageFile.mkdirs()) {
+                    System.out.println(newImageFile.delete());
+
+                    if (newImageFile.getParentFile().mkdirs()) {
                         System.out.println("first image!");
                     }
 
@@ -151,8 +163,27 @@ public class EditorActivity extends Activity {
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         if (requestCode == REQUEST_IMAGE_CAPTURE && resultCode == RESULT_OK) {
-            uriList.add(newImageFileName);
+            System.out.println("picture taken!");
+
+            int displayDuration;
+
+            if (audioDuration > totalDisplayDuration) {
+                displayDuration = audioDuration - totalDisplayDuration;
+            }
+            else {
+                displayDuration = 1;
+            }
+            if (addImageToList(newImageFileName, displayDuration)) {
+                System.out.println("add image: "+newImageFileName);
+                adapter.notifyDataSetChanged();
+            }
         }
+    }
+
+    protected void updateDisplayDuration(int duration, int position) {
+        displayDurationList.add(position, duration);
+        displayDurationList.remove(position+1);
+        adapter.notifyDataSetChanged();
     }
 
     public void firstRun(File projectFile) {
@@ -162,7 +193,7 @@ public class EditorActivity extends Activity {
 
             XmlSerializer serializer = Xml.newSerializer();
             serializer.setOutput(fos, "UTF-8");
-            serializer.startDocument(null, true);
+            serializer.startDocument("UTF-8", true);
             serializer.setFeature("http://xmlpull.org/v1/doc/features.html#indent-output", true);
             serializer.startTag(null, "root");
             serializer.endTag(null, "root");
@@ -181,6 +212,7 @@ public class EditorActivity extends Activity {
     public void readProjectData(File projectFile) {
 
         uriList = new ArrayList<>();
+        displayDurationList = new ArrayList<>();
 
         // Make an  instance of the DocumentBuilderFactory
         DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
@@ -219,8 +251,10 @@ public class EditorActivity extends Activity {
                             uriList.add(imageNodeUri);
                     }
                     if (imageNodeDisplayDuration != null) {
-                        if (!imageNodeDisplayDuration.isEmpty())
+                        if (!imageNodeDisplayDuration.isEmpty()) {
                             displayDurationList.add(Integer.parseInt(imageNodeDisplayDuration));
+                            totalDisplayDuration += Integer.parseInt(imageNodeDisplayDuration);
+                        }
                     }
                 }
             }
@@ -305,6 +339,7 @@ public class EditorActivity extends Activity {
 
             uriList.remove(position);
             displayDurationList.remove(position);
+            totalDisplayDuration -= displayDurationList.get(position);
 
             return true;
 
@@ -321,6 +356,7 @@ public class EditorActivity extends Activity {
             System.out.println(imageUri);
 
             if (uriList.indexOf(imageUri) != -1) {
+                System.out.println("element already exists");
                 return false;
             }
 
@@ -361,6 +397,7 @@ public class EditorActivity extends Activity {
 
                 uriList.add(imageUri);
                 displayDurationList.add(displayDuration);
+                totalDisplayDuration += displayDuration;
 
                 return true;
 
@@ -370,6 +407,7 @@ public class EditorActivity extends Activity {
                 System.err.println(ioe.getMessage());
             }
         }
+        System.out.println("missing element");
         return false;
     }
 

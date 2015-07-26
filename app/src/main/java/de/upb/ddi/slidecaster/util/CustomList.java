@@ -38,17 +38,25 @@ public class CustomList extends ArrayAdapter<String>{
         TextView txtTitle = (TextView) rowView.findViewById(R.id.txt);
         ImageView imageView = (ImageView) rowView.findViewById(R.id.img);
 
+        System.out.println("view height: " + parent.getHeight());
+        System.out.println("view width: " + parent.getWidth());
+        imageView.setMaxHeight(parent.getHeight() / 5);
+        imageView.setMaxWidth(parent.getWidth() / 5);
+
         int seconds = displayDurationList.get(position);
 
-        txtTitle.setText("show for: " + seconds + "s");
+        txtTitle.setText(" " + seconds + " sec");
         setPic(imageView, uriList.get(position));
         return rowView;
     }
 
     private void setPic(ImageView mImageView, String mCurrentPhotoPath) {
+
+        System.out.println("set pic");
+
         // Get the dimensions of the View
-        int targetW = mImageView.getWidth();
-        int targetH = mImageView.getHeight();
+        int targetW = mImageView.getMaxWidth();
+        int targetH = mImageView.getMaxHeight();
 
         // Get the dimensions of the bitmap
         BitmapFactory.Options bmOptions = new BitmapFactory.Options();

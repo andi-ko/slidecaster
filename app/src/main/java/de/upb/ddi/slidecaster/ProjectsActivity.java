@@ -71,8 +71,8 @@ public class ProjectsActivity extends Activity {
 
         projectListFile = new File(this.getFilesDir().getPath()+"/"+serverName+"/"+collectionName+".xml");
 
-        if (projectListFile.mkdirs()) {
-            System.out.println(projectListFile.getAbsolutePath());
+        if (projectListFile.getParentFile().mkdirs()) {
+            System.out.println("path created");
         }
 
         try {
