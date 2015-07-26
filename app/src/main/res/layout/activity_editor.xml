@@ -33,7 +33,8 @@
         android:src="@android:drawable/ic_media_play"
         android:layout_alignParentBottom="true"
         android:layout_alignParentRight="true"
-        android:layout_alignParentEnd="true" />
+        android:layout_alignParentEnd="true"
+        android:onClick="onPlay" />
 
     <ImageButton
         android:layout_width="wrap_content"
@@ -42,7 +43,8 @@
         android:src="@android:drawable/ic_btn_speak_now"
         android:layout_alignTop="@+id/publishButton"
         android:layout_alignParentLeft="true"
-        android:layout_alignParentStart="true" />
+        android:layout_alignParentStart="true"
+        android:onClick="onRecord" />
 
     <ImageButton
         android:layout_width="wrap_content"
@@ -67,7 +69,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="00:00"
-        android:id="@+id/playingTime"
+        android:id="@+id/playingTimeTextView"
         android:layout_below="@+id/seekBar"
         android:layout_alignParentLeft="true"
         android:layout_alignParentStart="true" />
@@ -75,8 +77,7 @@
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="-00:00"
-        android:id="@+id/remainingTime"
+        android:id="@+id/totalDurationTextView"
         android:layout_alignParentBottom="true"
         android:layout_toLeftOf="@+id/playAudioButton"
         android:layout_toStartOf="@+id/playAudioButton" />

@@ -2,18 +2,26 @@ package de.upb.ddi.slidecaster;
 
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.ActivityInfo;
+import android.media.MediaPlayer;
+import android.media.MediaRecorder;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
 import android.provider.MediaStore;
+import android.util.Log;
 import android.util.Xml;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.AdapterView;
+import android.widget.Button;
+import android.widget.ImageButton;
 import android.widget.ListView;
+import android.widget.SeekBar;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import org.w3c.dom.Document;
@@ -28,6 +36,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.sql.Time;
 import java.util.ArrayList;
+import java.util.concurrent.TimeUnit;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -41,8 +50,15 @@ import javax.xml.transform.stream.StreamResult;
 import de.upb.ddi.slidecaster.util.CustomList;
 import de.upb.ddi.slidecaster.util.SystemUiHider;
 
+import android.R.drawable;
+
+
 
 public class EditorActivity extends Activity {
+
+    private static final String LOG_TAG = "AudioRecordTest";
+
+    private MediaRecorder mRecorder;
 
     private String serverName;
     private String collectionName;
@@ -57,17 +73,45 @@ public class EditorActivity extends Activity {
     private File projectFile;
 
     private String audioFileUri;
+    private boolean audioAdded;
 
     private int audioDuration;
     private int totalDisplayDuration;
 
+    private boolean isRecording = false;
+    private boolean isPlaying = false;
+
     static final int REQUEST_IMAGE_CAPTURE = 1;
+
+    private MediaPlayer mPlayer;
+    private SeekBar seekbar;
+
+    private TextView totalDurationTextView;
+    private TextView playTimeTextView;
+
+    ImageButton recordButton;
+    ImageButton playButtton;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
         setContentView(R.layout.activity_editor);
+
+        recordButton = (ImageButton)findViewById(R.id.recordAudioButton);
+        recordButton.setImageResource(R.drawable.ic_btn_speak_now);
+
+        playButtton = (ImageButton)findViewById(R.id.playAudioButton);
+        playButtton.setImageResource(R.drawable.ic_media_play);
+
+        seekbar = (SeekBar)findViewById(R.id.seekBar);
+        seekbar.setClickable(false);
+
+        totalDurationTextView  = (TextView) findViewById(R.id.totalDurationTextView);
+        playTimeTextView = (TextView) findViewById(R.id.playingTimeTextView);
+
+        mPlayer = null;
+        mRecorder = null;
 
         audioDuration = 0;
         totalDisplayDuration = 0;
@@ -80,6 +124,14 @@ public class EditorActivity extends Activity {
         // projectNameEditText.setText(projectName, TextView.BufferType.EDITABLE);
 
         projectFile = new File(this.getFilesDir().getPath()+"/"+serverName+"/"+collectionName+"/"+projectName+".xml");
+
+        File extDir = this.getExternalFilesDir(null);
+
+        if (extDir != null) {
+            System.out.println("audio file path set");
+            audioFileUri = extDir.getAbsolutePath()+ "/" + serverName + "/" + collectionName + "/" + projectName + "/" + "record.mp4";
+        }
+        audioAdded = false;
 
         // System.out.println(projectFile.delete());
 
@@ -105,6 +157,34 @@ public class EditorActivity extends Activity {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
                 Toast.makeText(EditorActivity.this, "You Clicked at item: " + position, Toast.LENGTH_SHORT).show();
+            }
+        });
+
+        list.setOnItemLongClickListener(new AdapterView.OnItemLongClickListener() {
+
+            @Override
+            public boolean onItemLongClick(AdapterView<?> parent, View view, int position, long id) {
+
+                AlertDialog.Builder adb = new AlertDialog.Builder(EditorActivity.this);
+
+                adb.setTitle("Delete?");
+                adb.setMessage("Are you sure you want to delete this image?");
+
+                adb.setNegativeButton("Cancel", null);
+                adb.setPositiveButton("Ok", new AlertDialog.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int which) {
+                        String imageToDeletePath = uriList.get(position);
+
+                        if (removeImageFromList(position)) {
+                            if ((new File(imageToDeletePath)).delete()) {
+                                System.out.println("image deleted");
+                            }
+                            adapter.notifyDataSetChanged();
+                        }
+                    }
+                });
+                adb.show();
+                return true;
             }
         });
     }
@@ -185,6 +265,81 @@ public class EditorActivity extends Activity {
         displayDurationList.remove(position+1);
         adapter.notifyDataSetChanged();
     }
+
+    public void onRecord(View view) {
+        if (!isRecording) {
+            startRecording();
+        } else {
+            stopRecording();
+        }
+    }
+
+    public void onPlay(View view) {
+        if (!isPlaying) {
+            startPlaying();
+        } else {
+            stopPlaying();
+        }
+    }
+
+    private void startPlaying() {
+        mPlayer = new MediaPlayer();
+        try {
+            mPlayer.setDataSource(audioFileUri);
+            mPlayer.prepare();
+            mPlayer.start();
+        } catch (IOException e) {
+            Log.e(LOG_TAG, "prepare() failed");
+        }
+        playButtton.setImageResource(R.drawable.ic_media_pause);
+        isPlaying = true;
+    }
+
+    private void stopPlaying() {
+        mPlayer.release();
+        mPlayer = null;
+        playButtton.setImageResource(R.drawable.ic_media_play);
+        isPlaying = false;
+    }
+
+    private void startRecording() {
+        mRecorder = new MediaRecorder();
+        mRecorder.setAudioSource(MediaRecorder.AudioSource.MIC);
+        mRecorder.setOutputFormat(MediaRecorder.OutputFormat.MPEG_4);
+        mRecorder.setOutputFile(audioFileUri);
+        mRecorder.setAudioEncoder(MediaRecorder.AudioEncoder.AAC);
+
+        try {
+            System.out.println("preparing record");
+            mRecorder.prepare();
+        } catch (IOException e) {
+            Log.e(LOG_TAG, "prepare() failed");
+        }
+        recordButton.setImageResource(R.drawable.btn_circle_selected);
+        isRecording = true;
+        Toast.makeText(getApplicationContext(), "Recording",Toast.LENGTH_SHORT).show();
+        mRecorder.start();
+    }
+
+    private void stopRecording() {
+        mRecorder.stop();
+        mRecorder.release();
+        mRecorder = null;
+        recordButton.setImageResource(R.drawable.ic_btn_speak_now);
+        Toast.makeText(getApplicationContext(), "Recording finished",Toast.LENGTH_SHORT).show();
+        isRecording = false;
+        loadAudio(audioFileUri);
+    }
+
+    private void loadAudio(String uri) {
+        MediaPlayer mp = MediaPlayer.create(this, Uri.parse(uri));
+        long duration = mp.getDuration();
+        totalDurationTextView.setText(String.format("%d min, %d sec",
+                TimeUnit.MILLISECONDS.toMinutes(duration),
+                TimeUnit.MILLISECONDS.toSeconds(duration) -
+                        TimeUnit.MINUTES.toSeconds(TimeUnit.MILLISECONDS.toMinutes(duration))));
+    }
+
 
     public void firstRun(File projectFile) {
 
@@ -274,8 +429,10 @@ public class EditorActivity extends Activity {
                     System.out.println(audioNodeUri);
 
                     if (audioNodeUri != null) {
-                        if (!audioNodeUri.isEmpty())
+                        if (!audioNodeUri.isEmpty()) {
                             audioFileUri = audioNodeUri;
+                            audioAdded = true;
+                        }
                     }
                 }
             }
