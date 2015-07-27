@@ -10,14 +10,18 @@ import android.media.MediaRecorder;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
+import android.os.Handler;
 import android.provider.MediaStore;
+import android.text.InputType;
 import android.util.Log;
 import android.util.Xml;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.view.inputmethod.EditorInfo;
 import android.widget.AdapterView;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.ListView;
 import android.widget.SeekBar;
@@ -32,9 +36,13 @@ import org.xml.sax.SAXException;
 import org.xmlpull.v1.XmlSerializer;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.sql.Time;
+import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.concurrent.TimeUnit;
 
@@ -94,6 +102,7 @@ public class EditorActivity extends Activity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        System.out.println("=========================== EditorActivity: onCreate(): begin ===========================");
         super.onCreate(savedInstanceState);
         setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
         setContentView(R.layout.activity_editor);
@@ -125,6 +134,8 @@ public class EditorActivity extends Activity {
 
         projectFile = new File(this.getFilesDir().getPath()+"/"+serverName+"/"+collectionName+"/"+projectName+".xml");
 
+        // System.out.println(projectFile.delete());
+
         File extDir = this.getExternalFilesDir(null);
 
         if (extDir != null) {
@@ -132,8 +143,6 @@ public class EditorActivity extends Activity {
             audioFileUri = extDir.getAbsolutePath()+ "/" + serverName + "/" + collectionName + "/" + projectName + "/" + "record.mp4";
         }
         audioAdded = false;
-
-        // System.out.println(projectFile.delete());
 
         if (projectFile.getParentFile().mkdirs()) {
             System.out.println("path created");
@@ -156,7 +165,38 @@ public class EditorActivity extends Activity {
         list.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                Toast.makeText(EditorActivity.this, "You Clicked at item: " + position, Toast.LENGTH_SHORT).show();
+                AlertDialog.Builder builder = new AlertDialog.Builder(EditorActivity.this);
+                builder.setTitle("Set duration");
+                builder.setMessage("Enter the timespan for which this image is shown in seconds");
+
+                // Set up the input
+                final EditText input = new EditText(EditorActivity.this);
+
+                // Specify the type of input expected
+                input.setInputType(InputType.TYPE_CLASS_NUMBER);
+                builder.setView(input);
+
+                final int finalPosition = position;
+
+                // Set up the buttons
+                builder.setPositiveButton("OK", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        String duration = input.getText().toString();
+                        if (duration.length() > 0) {
+                            updateImageDisplayDuration(finalPosition, Integer.parseInt(duration));
+                            adapter.notifyDataSetChanged();
+                        }
+                    }
+                });
+                builder.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        dialog.cancel();
+                    }
+                });
+
+                builder.show();
             }
         });
 
@@ -170,12 +210,14 @@ public class EditorActivity extends Activity {
                 adb.setTitle("Delete?");
                 adb.setMessage("Are you sure you want to delete this image?");
 
+                final int pos = position;
+
                 adb.setNegativeButton("Cancel", null);
                 adb.setPositiveButton("Ok", new AlertDialog.OnClickListener() {
                     public void onClick(DialogInterface dialog, int which) {
-                        String imageToDeletePath = uriList.get(position);
+                        String imageToDeletePath = uriList.get(pos);
 
-                        if (removeImageFromList(position)) {
+                        if (removeImageFromList(pos)) {
                             if ((new File(imageToDeletePath)).delete()) {
                                 System.out.println("image deleted");
                             }
@@ -245,25 +287,13 @@ public class EditorActivity extends Activity {
         if (requestCode == REQUEST_IMAGE_CAPTURE && resultCode == RESULT_OK) {
             System.out.println("picture taken!");
 
-            int displayDuration;
+            int displayDuration = 1;
 
-            if (audioDuration > totalDisplayDuration) {
-                displayDuration = audioDuration - totalDisplayDuration;
-            }
-            else {
-                displayDuration = 1;
-            }
             if (addImageToList(newImageFileName, displayDuration)) {
                 System.out.println("add image: "+newImageFileName);
                 adapter.notifyDataSetChanged();
             }
         }
-    }
-
-    protected void updateDisplayDuration(int duration, int position) {
-        displayDurationList.add(position, duration);
-        displayDurationList.remove(position+1);
-        adapter.notifyDataSetChanged();
     }
 
     public void onRecord(View view) {
@@ -275,25 +305,52 @@ public class EditorActivity extends Activity {
     }
 
     public void onPlay(View view) {
-        if (!isPlaying) {
-            startPlaying();
-        } else {
-            stopPlaying();
+        if(audioAdded) {
+            if (!isPlaying) {
+                startPlaying();
+            } else {
+                stopPlaying();
+            }
         }
     }
+
+    private Handler myHandler = new Handler();
 
     private void startPlaying() {
         mPlayer = new MediaPlayer();
         try {
             mPlayer.setDataSource(audioFileUri);
             mPlayer.prepare();
+            seekbar.setMax(mPlayer.getDuration());
             mPlayer.start();
+            myHandler.postDelayed(UpdateSongTime,100);
         } catch (IOException e) {
             Log.e(LOG_TAG, "prepare() failed");
         }
-        playButtton.setImageResource(R.drawable.ic_media_pause);
+        playButtton.setImageResource(R.drawable.ic_media_stop);
         isPlaying = true;
     }
+
+    private Runnable UpdateSongTime = new Runnable() {
+
+        int time;
+
+        public void run() {
+            if (mPlayer != null && mPlayer.isPlaying()) {
+                time = mPlayer.getCurrentPosition();
+                playTimeTextView.setText(
+                        String.format("%02d", TimeUnit.MILLISECONDS.toMinutes(time)) + ":" +
+                            String.format("%02d", TimeUnit.MILLISECONDS.toSeconds(time) -
+                                    TimeUnit.MINUTES.toSeconds(TimeUnit.MILLISECONDS.toMinutes(time))));
+                seekbar.setProgress(time);
+                myHandler.postDelayed(this, 100);
+            }
+            else {
+                stopPlaying();
+                seekbar.setProgress(0);
+            }
+        }
+    };
 
     private void stopPlaying() {
         mPlayer.release();
@@ -303,6 +360,9 @@ public class EditorActivity extends Activity {
     }
 
     private void startRecording() {
+        if((new File(audioFileUri)).delete()){
+            System.out.println("new recording!");
+        }
         mRecorder = new MediaRecorder();
         mRecorder.setAudioSource(MediaRecorder.AudioSource.MIC);
         mRecorder.setOutputFormat(MediaRecorder.OutputFormat.MPEG_4);
@@ -328,16 +388,27 @@ public class EditorActivity extends Activity {
         recordButton.setImageResource(R.drawable.ic_btn_speak_now);
         Toast.makeText(getApplicationContext(), "Recording finished",Toast.LENGTH_SHORT).show();
         isRecording = false;
-        loadAudio(audioFileUri);
+        addAudio(audioFileUri);
+    }
+
+    private void addAudio(String uri) {
+        if (!audioAdded) {
+            addAudioFileURI(uri);
+        }
+        loadAudio(uri);
     }
 
     private void loadAudio(String uri) {
+        System.out.println("loading audio");
+        audioAdded = true;
         MediaPlayer mp = MediaPlayer.create(this, Uri.parse(uri));
         long duration = mp.getDuration();
-        totalDurationTextView.setText(String.format("%d min, %d sec",
-                TimeUnit.MILLISECONDS.toMinutes(duration),
-                TimeUnit.MILLISECONDS.toSeconds(duration) -
-                        TimeUnit.MINUTES.toSeconds(TimeUnit.MILLISECONDS.toMinutes(duration))));
+        System.out.println("duration: " + duration + " ms");
+        System.out.println(String.format("%02d", TimeUnit.MILLISECONDS.toMinutes(duration)));
+        totalDurationTextView.setText(
+                String.format("%02d", TimeUnit.MILLISECONDS.toMinutes(duration)) + ":" +
+                        String.format("%02d", TimeUnit.MILLISECONDS.toSeconds(duration) -
+                                TimeUnit.MINUTES.toSeconds(TimeUnit.MILLISECONDS.toMinutes(duration))));
     }
 
 
@@ -350,8 +421,11 @@ public class EditorActivity extends Activity {
             serializer.setOutput(fos, "UTF-8");
             serializer.startDocument("UTF-8", true);
             serializer.setFeature("http://xmlpull.org/v1/doc/features.html#indent-output", true);
-            serializer.startTag(null, "root");
-            serializer.endTag(null, "root");
+            serializer.startTag("", "root");
+            serializer.startTag("", "ID");
+            serializer.text(Integer.toString((int) (Math.random() * 10000)));
+            serializer.endTag("", "ID");
+            serializer.endTag("", "root");
             serializer.endDocument();
 
             serializer.flush();
@@ -365,6 +439,8 @@ public class EditorActivity extends Activity {
     }
 
     public void readProjectData(File projectFile) {
+
+        System.out.println("reading project file");
 
         uriList = new ArrayList<>();
         displayDurationList = new ArrayList<>();
@@ -402,11 +478,14 @@ public class EditorActivity extends Activity {
                     System.out.println(imageNodeDisplayDuration);
 
                     if (imageNodeUri != null) {
-                        if (!imageNodeUri.isEmpty())
+                        if (!imageNodeUri.isEmpty()) {
+                            System.out.println("adding image: "+imageNodeUri);
                             uriList.add(imageNodeUri);
+                        }
                     }
                     if (imageNodeDisplayDuration != null) {
                         if (!imageNodeDisplayDuration.isEmpty()) {
+                            System.out.println("adding duration: "+imageNodeDisplayDuration);
                             displayDurationList.add(Integer.parseInt(imageNodeDisplayDuration));
                             totalDisplayDuration += Integer.parseInt(imageNodeDisplayDuration);
                         }
@@ -431,7 +510,7 @@ public class EditorActivity extends Activity {
                     if (audioNodeUri != null) {
                         if (!audioNodeUri.isEmpty()) {
                             audioFileUri = audioNodeUri;
-                            audioAdded = true;
+                            loadAudio(audioFileUri);
                         }
                     }
                 }
@@ -476,7 +555,7 @@ public class EditorActivity extends Activity {
 
                     Element eElement = (Element) imageNode;
 
-                    System.out.println(eElement.getElementsByTagName("urri").item(0).getTextContent());
+                    System.out.println(eElement.getElementsByTagName("uri").item(0).getTextContent());
 
                     if (imageName.equals(eElement.getElementsByTagName("uri").item(0).getTextContent())) {
                         if (displayDuration == Integer.parseInt(eElement.getElementsByTagName("displayDuration").item(0).getTextContent())) {
@@ -506,6 +585,72 @@ public class EditorActivity extends Activity {
         return false;
     }
 
+    public boolean updateImageDisplayDuration(int position, int duration) {
+
+        String imageName = uriList.get(position);
+
+        System.out.println("search: "+imageName);
+
+        // Make an  instance of the DocumentBuilderFactory
+        DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+        try {
+            // use the factory to take an instance of the document builder
+            DocumentBuilder db = dbf.newDocumentBuilder();
+            // parse using the builder to get the DOM mapping of the
+            // XML file
+            Document dom = db.parse(projectFile);
+
+            //optional, but recommended
+            //read this - http://stackoverflow.com/questions/13786607/normalization-in-dom-parsing-with-java-how-does-it-work
+            dom.getDocumentElement().normalize();
+
+            Element doc = dom.getDocumentElement();
+
+            NodeList imageList = doc.getElementsByTagName("image");
+
+            for (int i = 0; i < imageList.getLength(); i++) {
+
+                Node imageNode = imageList.item(i);
+
+                if (imageNode.getNodeType() == Node.ELEMENT_NODE) {
+
+                    Element eElement = (Element) imageNode;
+
+                    System.out.println(eElement.getElementsByTagName("uri").item(0).getTextContent());
+
+                    if (imageName.equals(eElement.getElementsByTagName("uri").item(0).getTextContent())) {
+
+                        Element displayDurationNode = (Element)eElement.getElementsByTagName("displayDuration").item(0);
+
+                        if (displayDurationNode != null) {
+                            displayDurationNode.setTextContent(Integer.toString(duration));
+                            System.out.println("new duration: "+duration);
+                        }
+                    }
+                }
+            }
+
+            DOMSource source = new DOMSource(dom);
+
+            TransformerFactory transformerFactory = TransformerFactory.newInstance();
+            Transformer transformer = transformerFactory.newTransformer();
+            StreamResult result = new StreamResult(projectFile);
+            transformer.transform(source, result);
+
+            totalDisplayDuration -= displayDurationList.get(position);
+            displayDurationList.remove(position);
+
+            totalDisplayDuration += duration;
+            displayDurationList.add(position, duration);
+
+            return true;
+
+        } catch (ParserConfigurationException | SAXException | TransformerException | IOException pce) {
+            System.err.println(pce.getMessage());
+        }
+        return false;
+    }
+
     public boolean addImageToList(String imageUri, int displayDuration) {
 
         if (imageUri != null && !imageUri.isEmpty()) {
@@ -524,7 +669,7 @@ public class EditorActivity extends Activity {
                 DocumentBuilder db = dbf.newDocumentBuilder();
                 // parse using the builder to get the DOM mapping of the
                 // XML file
-                Document dom = db.parse(projectFile);
+                org.w3c.dom.Document dom = db.parse(projectFile);
 
                 //optional, but recommended
                 //read this - http://stackoverflow.com/questions/13786607/normalization-in-dom-parsing-with-java-how-does-it-work
@@ -543,6 +688,8 @@ public class EditorActivity extends Activity {
                 displayDurationElement.appendChild(dom.createTextNode(Integer.toString(displayDuration)));
                 newImage.appendChild(displayDurationElement);
 
+                System.out.println("append new image");
+
                 doc.appendChild(newImage);
 
                 DOMSource source = new DOMSource(dom);
@@ -555,6 +702,56 @@ public class EditorActivity extends Activity {
                 uriList.add(imageUri);
                 displayDurationList.add(displayDuration);
                 totalDisplayDuration += displayDuration;
+
+                System.out.println("success");
+
+                return true;
+
+            } catch (SAXException | ParserConfigurationException se) {
+                System.out.println(se.getMessage());
+            } catch (IOException | TransformerException ioe) {
+                System.err.println(ioe.getMessage());
+            }
+        }
+        System.out.println("missing element");
+        return false;
+    }
+
+    public boolean addAudioFileURI(String audioUri) {
+
+        if (audioUri != null && !audioUri.isEmpty()) {
+
+            System.out.println("adding audio uri: "+audioUri);
+
+            // Make an  instance of the DocumentBuilderFactory
+            DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+            try {
+                // use the factory to take an instance of the document builder
+                DocumentBuilder db = dbf.newDocumentBuilder();
+                // parse using the builder to get the DOM mapping of the
+                // XML file
+                Document dom = db.parse(projectFile);
+
+                //optional, but recommended
+                //read this - http://stackoverflow.com/questions/13786607/normalization-in-dom-parsing-with-java-how-does-it-work
+                dom.getDocumentElement().normalize();
+
+                Element doc = dom.getDocumentElement();
+
+                Element audioElement = dom.createElement("audio");
+
+                Element uri = dom.createElement("uri");
+                uri.appendChild(dom.createTextNode(audioUri));
+                audioElement.appendChild(uri);
+
+                doc.appendChild(audioElement);
+
+                DOMSource source = new DOMSource(dom);
+
+                TransformerFactory transformerFactory = TransformerFactory.newInstance();
+                Transformer transformer = transformerFactory.newTransformer();
+                StreamResult result = new StreamResult(projectFile);
+                transformer.transform(source, result);
 
                 return true;
 

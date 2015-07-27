@@ -139,6 +139,8 @@ public class ProjectsActivity extends Activity {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle("Title");
 
+        builder.setMessage("Enter the title for your new project");
+
         // Set up the input
         final EditText input = new EditText(this);
         // Specify the type of input expected
@@ -343,8 +345,6 @@ public class ProjectsActivity extends Activity {
                 return false;
             }
 
-            projectNames.add(projectName);
-
             // Make an  instance of the DocumentBuilderFactory
             DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
             try {
@@ -376,12 +376,15 @@ public class ProjectsActivity extends Activity {
                 StreamResult result = new StreamResult(projectListFile);
                 transformer.transform(source, result);
 
+                projectNames.add(projectName);
+                return true;
+
             } catch (SAXException | ParserConfigurationException se) {
                 System.out.println(se.getMessage());
             } catch (IOException | TransformerException ioe) {
                 System.err.println(ioe.getMessage());
             }
         }
-        return true;
+        return false;
     }
 }

@@ -5,6 +5,7 @@ import android.app.Activity;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.net.Uri;
+import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -17,6 +18,7 @@ import java.sql.Time;
 import java.util.ArrayList;
 import java.util.concurrent.TimeUnit;
 
+import de.upb.ddi.slidecaster.EditorActivity;
 import de.upb.ddi.slidecaster.R;
 
 public class CustomList extends ArrayAdapter<String>{
@@ -38,10 +40,8 @@ public class CustomList extends ArrayAdapter<String>{
         TextView txtTitle = (TextView) rowView.findViewById(R.id.txt);
         ImageView imageView = (ImageView) rowView.findViewById(R.id.img);
 
-        System.out.println("view height: " + parent.getHeight());
-        System.out.println("view width: " + parent.getWidth());
-        imageView.setMaxHeight(parent.getHeight() / 5);
-        imageView.setMaxWidth(parent.getWidth() / 5);
+        imageView.setMaxHeight(50);
+        imageView.setMaxWidth(50);
 
         int seconds = displayDurationList.get(position);
 
