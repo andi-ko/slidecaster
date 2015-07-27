@@ -15,7 +15,6 @@ import android.os.Handler;
 import android.provider.MediaStore;
 import android.text.InputType;
 import android.util.Log;
-import android.util.Xml;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -34,10 +33,8 @@ import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
-import org.xmlpull.v1.XmlSerializer;
 
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.concurrent.TimeUnit;
@@ -53,6 +50,7 @@ import javax.xml.transform.stream.StreamResult;
 
 import de.upb.ddi.slidecaster.net.DatabaseTask;
 import de.upb.ddi.slidecaster.util.CustomList;
+import de.upb.ddi.slidecaster.util.XMLHelpers;
 
 import com.mongodb.client.MongoCollection;
 import com.mongodb.gridfs.GridFS;
@@ -161,7 +159,7 @@ public class EditorActivity extends Activity {
         try {
             if (projectFile.createNewFile()) {
                 System.out.println("new project file created");
-                firstRun(projectFile);
+                XMLHelpers.initProjectFile(projectFile);
             }
         } catch (IOException e) {
             e.printStackTrace();
@@ -396,7 +394,7 @@ public class EditorActivity extends Activity {
 
     private void addAudio(String uri) {
         if (!audioAdded) {
-            addAudioFileURI(uri);
+            addAudioToProjectFile(projectFile, uri);
         }
         loadAudio(uri);
     }
@@ -411,33 +409,6 @@ public class EditorActivity extends Activity {
                 String.format("%02d", TimeUnit.MILLISECONDS.toMinutes(duration)) + ":" +
                         String.format("%02d", TimeUnit.MILLISECONDS.toSeconds(duration) -
                                 TimeUnit.MINUTES.toSeconds(TimeUnit.MILLISECONDS.toMinutes(duration))) + " ");
-    }
-
-
-    public void firstRun(File projectFile) {
-
-        try {
-            FileOutputStream fos = new FileOutputStream(projectFile);
-
-            XmlSerializer serializer = Xml.newSerializer();
-            serializer.setOutput(fos, "UTF-8");
-            serializer.startDocument("UTF-8", true);
-            serializer.setFeature("http://xmlpull.org/v1/doc/features.html#indent-output", true);
-            serializer.startTag("", "root");
-            serializer.startTag("", "ID");
-            serializer.text(Integer.toString((int) (Math.random() * 10000)));
-            serializer.endTag("", "ID");
-            serializer.endTag("", "root");
-            serializer.endDocument();
-
-            serializer.flush();
-            fos.close();
-
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
-        System.out.println("new xml created");
     }
 
     public void readProjectData(File projectFile) {
@@ -522,6 +493,54 @@ public class EditorActivity extends Activity {
         } catch (SAXException | IOException e) {
             e.printStackTrace();
         }
+    }
+
+    public boolean addAudioToProjectFile(File projectFile, String audioUri) {
+
+        if (audioUri != null && !audioUri.isEmpty()) {
+
+            System.out.println("adding audio uri: "+audioUri);
+
+            // Make an  instance of the DocumentBuilderFactory
+            DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+            try {
+                // use the factory to take an instance of the document builder
+                DocumentBuilder db = dbf.newDocumentBuilder();
+                // parse using the builder to get the DOM mapping of the
+                // XML file
+                Document dom = db.parse(projectFile);
+
+                //optional, but recommended
+                //read this - http://stackoverflow.com/questions/13786607/normalization-in-dom-parsing-with-java-how-does-it-work
+                dom.getDocumentElement().normalize();
+
+                Element doc = dom.getDocumentElement();
+
+                Element audioElement = dom.createElement("audio");
+
+                Element uri = dom.createElement("uri");
+                uri.appendChild(dom.createTextNode(audioUri));
+                audioElement.appendChild(uri);
+
+                doc.appendChild(audioElement);
+
+                DOMSource source = new DOMSource(dom);
+
+                TransformerFactory transformerFactory = TransformerFactory.newInstance();
+                Transformer transformer = transformerFactory.newTransformer();
+                StreamResult result = new StreamResult(projectFile);
+                transformer.transform(source, result);
+
+                return true;
+
+            } catch (SAXException | ParserConfigurationException se) {
+                System.out.println(se.getMessage());
+            } catch (IOException | TransformerException ioe) {
+                System.err.println(ioe.getMessage());
+            }
+        }
+        System.out.println("missing element");
+        return false;
     }
 
     public boolean removeImageFromList(int position) {
@@ -714,54 +733,6 @@ public class EditorActivity extends Activity {
         return false;
     }
 
-    public boolean addAudioFileURI(String audioUri) {
-
-        if (audioUri != null && !audioUri.isEmpty()) {
-
-            System.out.println("adding audio uri: "+audioUri);
-
-            // Make an  instance of the DocumentBuilderFactory
-            DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
-            try {
-                // use the factory to take an instance of the document builder
-                DocumentBuilder db = dbf.newDocumentBuilder();
-                // parse using the builder to get the DOM mapping of the
-                // XML file
-                Document dom = db.parse(projectFile);
-
-                //optional, but recommended
-                //read this - http://stackoverflow.com/questions/13786607/normalization-in-dom-parsing-with-java-how-does-it-work
-                dom.getDocumentElement().normalize();
-
-                Element doc = dom.getDocumentElement();
-
-                Element audioElement = dom.createElement("audio");
-
-                Element uri = dom.createElement("uri");
-                uri.appendChild(dom.createTextNode(audioUri));
-                audioElement.appendChild(uri);
-
-                doc.appendChild(audioElement);
-
-                DOMSource source = new DOMSource(dom);
-
-                TransformerFactory transformerFactory = TransformerFactory.newInstance();
-                Transformer transformer = transformerFactory.newTransformer();
-                StreamResult result = new StreamResult(projectFile);
-                transformer.transform(source, result);
-
-                return true;
-
-            } catch (SAXException | ParserConfigurationException se) {
-                System.out.println(se.getMessage());
-            } catch (IOException | TransformerException ioe) {
-                System.err.println(ioe.getMessage());
-            }
-        }
-        System.out.println("missing element");
-        return false;
-    }
-
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         // Inflate the menu; this adds items to the action bar if it is present.
@@ -857,41 +828,10 @@ public class EditorActivity extends Activity {
                 // Set The Result in Intent
                 setResult(REQUEST_PROJECT_RELEASE, intent);
 
-                try {
-                    File newFile = new File(projectFile.getParent()+projectName+"(remote).xml");
-                    System.out.println("new project name: "+newFile.getAbsolutePath());
-                    if (newFile.exists()){
-                        System.out.println("file already exists");
-                    }
-                    // Rename file (or directory)
-                    if (!projectFile.renameTo(newFile)) {
-                        // File was not successfully renamed
-                        System.out.println("rename failed");
-                    }
-                }
-                catch (Exception e) {
-                    System.out.println(e.getMessage());
-                }
-
-                try {
-                    File newDir = new File(extDir.getParent()+projectName+"(remote)");
-                    System.out.println("new ext dir: "+newDir.getAbsolutePath());
-                    if (!newDir.exists()){
-                        System.out.println("new directory lready exists");
-                    }
-                    // Rename file (or directory)
-                    if (!projectFile.renameTo(newDir)) {
-                        // File was not successfully renamed
-                        System.out.println("rename failed");
-                    }
-                }
-                catch (Exception e) {
-                    System.out.println(e.getMessage());
-                }
-
                 finish();
             }
         }
+        @SuppressWarnings("deprecation")
         protected boolean upload() {
 
             try {

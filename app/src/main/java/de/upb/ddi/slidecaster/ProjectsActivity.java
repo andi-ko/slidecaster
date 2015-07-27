@@ -3,10 +3,10 @@ package de.upb.ddi.slidecaster;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.ProgressDialog;
-import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.Bundle;
+import android.os.Environment;
 import android.text.InputType;
 import android.util.Xml;
 import android.view.Menu;
@@ -20,7 +20,15 @@ import android.widget.ListView;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoCursor;
 import com.mongodb.client.model.Projections;
+import com.mongodb.gridfs.GridFS;
+import com.mongodb.gridfs.GridFSDBFile;
 
+import org.bson.BsonDocument;
+import org.bson.BsonDocumentReader;
+import org.bson.BsonDocumentWriter;
+import org.bson.BsonReader;
+import org.bson.BsonType;
+import org.bson.BsonWriter;
 import org.bson.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
@@ -44,6 +52,7 @@ import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 
 import de.upb.ddi.slidecaster.net.DatabaseTask;
+import de.upb.ddi.slidecaster.util.XMLHelpers;
 
 
 public class ProjectsActivity extends Activity {
@@ -102,15 +111,49 @@ public class ProjectsActivity extends Activity {
 
                 Intent intent;
 
+                String projectName = projectNames.get(position);
+
                 if (!projectNames.get(position).endsWith("(remote)")) {
                     intent = new Intent(ProjectsActivity.this, EditorActivity.class);
                     intent.putExtra(getString(R.string.stringExtraServerName), serverName);
                     intent.putExtra(getString(R.string.stringExtraCollectionName), collectionName);
-                    intent.putExtra(getString(R.string.stringExtraProjectName), projectNames.get(position));
+                    intent.putExtra(getString(R.string.stringExtraProjectName), projectName);
                     startActivity(intent);
                 }
                 else {
-                    // TODO: launch player
+                    projectName = projectName.substring(0, projectName.lastIndexOf("(remote)"));
+
+                    // check for data
+
+                    File projectFile = new File(getFilesDir().getPath()+"/"+serverName+"/"+collectionName+"/"+projectName+".xml");
+
+                    try {
+                        if (projectFile.createNewFile()) {
+
+                            dialog = new ProgressDialog(ProjectsActivity.this);
+                            dialog.setProgressStyle(ProgressDialog.STYLE_SPINNER);
+                            dialog.setMessage("Fetching data, please wait...");
+                            dialog.setIndeterminate(true);
+                            dialog.setCanceledOnTouchOutside(false);
+                            dialog.show();
+
+                            // fetch project
+
+                            FetchRemetoProjectTask task = new FetchRemetoProjectTask();
+                            task.execute(projectName, projectFile.getAbsolutePath());
+                        }
+                        else {
+                            launchPlayer(projectName);
+                        }
+                    } catch (IOException e) {
+                        System.err.println(e.getMessage());
+                        AlertDialog.Builder adb=new AlertDialog.Builder(ProjectsActivity.this);
+
+                        adb.setTitle("Error");
+                        adb.setMessage("Missing FS write access.");
+
+                        adb.show();
+                    }
                 }
             }
         });
@@ -143,6 +186,204 @@ public class ProjectsActivity extends Activity {
                 return true;
             }
         });
+    }
+
+    private class FetchRemetoProjectTask extends DatabaseTask {
+
+        private String projectName;
+        private String nameSpace;
+
+        private File projectFile;
+
+        private File extDir;
+
+        @Override
+        protected String[] doInBackground(String... params) {
+            if (assertConnection()) {
+                projectName = params[0];
+                projectFile = new File(params[1]);
+                nameSpace = collectionName+"/"+projectName;
+
+                extDir = getExternalFilesDir(null);
+
+                String state = Environment.getExternalStorageState();
+                if (Environment.MEDIA_MOUNTED.equals(state) && extDir != null) {
+
+                    System.out.println(extDir.getAbsolutePath());
+
+                    extDir = new File(extDir.getAbsolutePath()+"/" + serverName + "/" + collectionName + "/" + projectName);
+
+                    if (extDir.mkdirs()) {
+                        System.out.println("new external directory created");
+                    }
+                }
+
+
+                return getRemoteProject();
+            }
+            return null;
+        }
+
+        /** The system calls this to perform work in the UI thread and delivers
+         * the result from doInBackground() */
+        protected void onPostExecute(String[] result) {
+
+            if (dialog != null) {
+                dialog.dismiss();
+            }
+
+            if (result == null) {
+                AlertDialog.Builder adb=new AlertDialog.Builder(ProjectsActivity.this);
+
+                adb.setTitle("Error");
+                adb.setMessage("Download failed.");
+
+                adb.show();
+
+                if (projectFile.delete()){
+                    System.out.println("project file deleted");
+                }
+            }
+            else {
+                launchPlayer(projectName);
+            }
+        }
+        @SuppressWarnings("deprecation")
+        protected String[] getRemoteProject() {
+            try {
+                System.out.println("download project attempt");
+
+                String audioFileName;
+
+                ArrayList<String> imageFileNames = new ArrayList<>();
+
+                MongoCollection<org.bson.Document> collection = getMongoDB().getCollection(collectionName);
+
+                try {
+                    FileOutputStream fos = new FileOutputStream(projectFile);
+
+                    XmlSerializer serializer = Xml.newSerializer();
+                    serializer.setOutput(fos, "UTF-8");
+                    serializer.startDocument("UTF-8", true);
+                    serializer.setFeature("http://xmlpull.org/v1/doc/features.html#indent-output", true);
+                    serializer.startTag("", "root");
+                    serializer.startTag("", "ID");
+                    serializer.text(Integer.toString((int) (Math.random() * 10000)));
+                    serializer.endTag("", "ID");
+
+                    // read database
+
+                    org.bson.BsonDocument projectDocument = new BsonDocument();
+
+                    // read project meta
+
+                    MongoCursor<Document> cursor  = collection.find(
+                            new Document("name", projectName)).projection(Projections.excludeId()).iterator();
+
+                    while (cursor.hasNext()) {
+                        projectDocument = org.bson.BsonDocument.parse(cursor.next().toJson());
+                        System.out.println("document found:");
+                        System.out.println(projectDocument.toString());
+                    }
+                    cursor.close();
+
+                    // Construct a BsonReader
+                    BsonReader reader = new BsonDocumentReader(projectDocument);
+
+                    reader.readStartDocument();
+
+                    // read project name
+                    System.out.println("project name: " + projectName);
+                    reader.readName();
+                    String remoteProject = reader.readString();
+                    System.out.println("remote name: " + remoteProject);
+                    if (!projectName.equals(remoteProject)) {
+                        throw new IOException("remote project error!");
+                    }
+
+                    // read audio file name
+                    reader.readName();
+                    audioFileName = reader.readString();
+                    serializer.startTag("", "audio");
+                    serializer.startTag("", "uri");
+                    serializer.text(extDir.getAbsolutePath() + "/" + audioFileName);
+                    serializer.endTag("", "uri");
+                    serializer.endTag("", "audio");
+
+                    // read images
+                    reader.readName();
+                    reader.readStartArray();
+                    while (reader.readBsonType() == BsonType.DOCUMENT){
+                        System.out.println("reading image data");
+                        serializer.startTag("", "image");
+                        reader.readStartDocument();
+                        reader.readName();
+                        serializer.startTag("", "uri");
+                        String imageFileName = reader.readString();
+                        imageFileNames.add(imageFileName);
+                        serializer.text(extDir.getAbsolutePath() + "/" + imageFileName);
+                        serializer.endTag("", "uri");
+                        reader.readName();
+                        serializer.startTag("", "displayDuration");
+                        serializer.text(Integer.toString(reader.readInt32()));
+                        serializer.endTag("", "displayDuration");
+                        reader.readEndDocument();
+                        serializer.endTag("", "image");
+                        System.out.println("image read");
+                    }
+                    reader.readEndArray();
+                    reader.readEndDocument();
+
+                    // finish XML
+
+                    serializer.endTag("", "root");
+                    serializer.endDocument();
+
+                    serializer.flush();
+                    fos.close();
+                    System.out.println("new xml created");
+
+                    // connect to GridFS
+                    GridFS fileStore = new GridFS(getMongoClient().getDB(serverName), nameSpace);
+
+                    // Download audio
+                    String dbFileName = audioFileName;
+                    GridFSDBFile remoteFile = fileStore.findOne(dbFileName);
+                    System.out.println("download audio");
+                    remoteFile.writeTo(extDir.getAbsolutePath() + "/" + dbFileName);
+
+                    // Download images
+                    for (int i = 0; i < imageFileNames.size(); i++) {
+                        dbFileName = imageFileNames.get(i);
+                        remoteFile = fileStore.findOne(dbFileName);
+                        System.out.println("download image");
+                        remoteFile.writeTo(extDir.getAbsolutePath() + "/" + dbFileName);
+                    }
+
+                    System.out.println("download complete");
+
+                } catch (IOException e) {
+                    e.printStackTrace();
+                    return null;
+                }
+
+                return new String[1];
+
+            } catch (Exception e) {
+                System.err.println(e.getMessage());
+            }
+            return null;
+        }
+    }
+
+    public void launchPlayer(String projectName) {
+        Intent intent = new Intent(ProjectsActivity.this, PlayerActivity.class);
+
+        intent.putExtra(getString(R.string.stringExtraProjectName), projectName);
+        intent.putExtra(getString(R.string.stringExtraServerName), serverName);
+        intent.putExtra(getString(R.string.stringExtraCollectionName), collectionName);
+
+        startActivity(intent);
     }
 
     public void createProject(View view) {
@@ -358,6 +599,9 @@ public class ProjectsActivity extends Activity {
             System.out.println(projectName);
 
             if (projectNames.indexOf(projectName) != -1) {
+                return false;
+            }
+            if (projectNames.indexOf(projectName+"(remote)") != -1) {
                 return false;
             }
 

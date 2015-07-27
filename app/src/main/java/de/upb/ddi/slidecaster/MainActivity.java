@@ -2,7 +2,6 @@ package de.upb.ddi.slidecaster;
 
 import android.app.Activity;
 import android.app.AlertDialog;
-import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.Bundle;
@@ -62,7 +61,7 @@ public class MainActivity extends Activity {
 
         try {
             if (serverListFile.createNewFile()) {
-                firstRun(serverListFile);
+                initServerListFile(serverListFile);
             }
         } catch (IOException e) {
             e.printStackTrace();
@@ -116,9 +115,9 @@ public class MainActivity extends Activity {
         });
     }
 
-    public void firstRun(File serverListFile) {
+    public void initServerListFile(File serverListFile) {
 
-        System.out.println("=========================== MainActivity: firstRun() ===========================");
+        System.out.println("=========================== MainActivity: initServerListFile() ===========================");
 
         try {
             FileOutputStream fos = new FileOutputStream(serverListFile);
@@ -144,7 +143,7 @@ public class MainActivity extends Activity {
 
             fos.close();
 
-            System.out.println("=========================== MainActivity: firstRun(): serverListFile closed ===========================");
+            System.out.println("=========================== MainActivity: initServerListFile(): serverListFile closed ===========================");
         } catch (IOException e) {
             e.printStackTrace();
         }

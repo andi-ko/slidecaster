@@ -11,6 +11,7 @@ import android.view.WindowManager;
  * Honeycomb and later (specifically {@link View#setSystemUiVisibility(int)}) to
  * show and hide the system UI.
  */
+@SuppressWarnings("ConstantConditions")
 @TargetApi(Build.VERSION_CODES.HONEYCOMB)
 public class SystemUiHiderHoneycomb extends SystemUiHiderBase {
     /**
@@ -105,15 +106,11 @@ public class SystemUiHiderHoneycomb extends SystemUiHiderBase {
         @Override
         public void onSystemUiVisibilityChange(int vis) {
             // Test against mTestFlags to see if the system UI is visible.
-
             if ((vis & mTestFlags) != 0) {
                 if (Build.VERSION.SDK_INT < Build.VERSION_CODES.JELLY_BEAN) {
                     // Pre-Jelly Bean, we must manually hide the action bar
                     // and use the old window flags API.
-
-                    if (mActivity.getActionBar() != null) {
-                        mActivity.getActionBar().hide();
-                    }
+                    mActivity.getActionBar().hide();
                     mActivity.getWindow().setFlags(
                             WindowManager.LayoutParams.FLAG_FULLSCREEN,
                             WindowManager.LayoutParams.FLAG_FULLSCREEN);
@@ -129,11 +126,7 @@ public class SystemUiHiderHoneycomb extends SystemUiHiderBase {
                 if (Build.VERSION.SDK_INT < Build.VERSION_CODES.JELLY_BEAN) {
                     // Pre-Jelly Bean, we must manually show the action bar
                     // and use the old window flags API.
-
-                    if (mActivity.getActionBar() != null) {
-                        mActivity.getActionBar().show();
-                    }
-
+                    mActivity.getActionBar().show();
                     mActivity.getWindow().setFlags(
                             0,
                             WindowManager.LayoutParams.FLAG_FULLSCREEN);
