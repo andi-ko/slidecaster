@@ -70,6 +70,7 @@ public class ProjectsActivity extends Activity {
     private File projectListFile;
 
     static final int REQUEST_PROJECT_RELEASE = 2;
+    static final int REQUEST_REPLY = 3;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -121,7 +122,7 @@ public class ProjectsActivity extends Activity {
                     intent.putExtra(getString(R.string.stringExtraServerName), serverName);
                     intent.putExtra(getString(R.string.stringExtraCollectionName), collectionName);
                     intent.putExtra(getString(R.string.stringExtraProjectName), projectName);
-                    startActivity(intent);
+                    startActivityForResult(intent, REQUEST_REPLY);
                 }
                 else {
                     projectName = projectName.substring(0, projectName.lastIndexOf("(remote)"));
@@ -129,6 +130,10 @@ public class ProjectsActivity extends Activity {
                     // check for data
 
                     File projectFile = new File(getFilesDir().getPath()+"/"+serverName+"/"+collectionName+"/"+projectName+".xml");
+
+                    if (projectFile.getParentFile().mkdirs()) {
+                        System.out.println("new project file created");
+                    }
 
                     try {
                         if (projectFile.createNewFile()) {
@@ -446,14 +451,17 @@ public class ProjectsActivity extends Activity {
     protected void onActivityResult(int requestCode, int resultCode, Intent data)
     {
         // check if the request code is same as what is passed, here it is 2
-        if(requestCode==REQUEST_PROJECT_RELEASE && data != null)
+        if(resultCode == REQUEST_PROJECT_RELEASE && data != null)
         {
             // fetch the message String
             String projectName=data.getStringExtra(getString(R.string.stringExtraProjectName));
 
-            if (removeProjectFromList(projectNames.indexOf(projectName))) {
+            System.out.println(projectName);
+
+            if (projectNames.indexOf(projectName) != -1 && removeProjectFromList(projectNames.indexOf(projectName))) {
                 if (addProjectToList(projectName+"(remote)")) {
                     adapter.notifyDataSetChanged();
+                    System.out.println("appending successful");
                     AlertDialog.Builder adb = new AlertDialog.Builder(ProjectsActivity.this);
                     adb.setTitle("Success");
                     adb.setMessage("Your project is now listed as a remote project");
@@ -461,10 +469,6 @@ public class ProjectsActivity extends Activity {
                 }
             }
         }
-        else {
-            super.onActivityResult(requestCode, resultCode, data);
-        }
-
     }
 
     @Override

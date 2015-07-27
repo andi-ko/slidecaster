@@ -168,8 +168,11 @@ public class EditorActivity extends Activity {
         uriList = new ArrayList<>();
         displayDurationList = new ArrayList<>();
 
-        audioFileUri = XMLHelpers.readProjectData(projectFile, uriList, displayDurationList);
-        loadAudio(audioFileUri);
+        String newaudioFileUri = XMLHelpers.readProjectData(projectFile, uriList, displayDurationList);
+        if (newaudioFileUri != null) {
+            audioFileUri = newaudioFileUri;
+            loadAudio(audioFileUri);
+        }
 
         adapter = new CustomList(EditorActivity.this, uriList, displayDurationList);
         ListView list = (ListView)findViewById(R.id.imageListView);
