@@ -120,7 +120,7 @@ public class CollectionsActivity extends Activity {
                 System.out.println("projects fetched");
 
                 while (cursor.hasNext()) {
-                    projects.add(cursor.next().toString());
+                    projects.add(cursor.next().getString("name"));
                     System.out.println(projects.get(projects.size()-1));
                 }
                 cursor.close();

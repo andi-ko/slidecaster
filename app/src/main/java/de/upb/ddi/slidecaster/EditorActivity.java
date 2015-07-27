@@ -19,9 +19,7 @@ import android.util.Xml;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
-import android.view.inputmethod.EditorInfo;
 import android.widget.AdapterView;
-import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.ListView;
@@ -31,7 +29,6 @@ import android.widget.Toast;
 
 import org.bson.BsonDocumentWriter;
 import org.bson.BsonWriter;
-import org.bson.codecs.EncoderContext;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
@@ -40,15 +37,9 @@ import org.xml.sax.SAXException;
 import org.xmlpull.v1.XmlSerializer;
 
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.sql.Time;
-import java.text.DecimalFormat;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.concurrent.TimeUnit;
 
 import javax.xml.parsers.DocumentBuilder;
@@ -62,13 +53,8 @@ import javax.xml.transform.stream.StreamResult;
 
 import de.upb.ddi.slidecaster.net.DatabaseTask;
 import de.upb.ddi.slidecaster.util.CustomList;
-import de.upb.ddi.slidecaster.util.SystemUiHider;
-
-import android.R.drawable;
 
 import com.mongodb.client.MongoCollection;
-import com.mongodb.client.MongoCursor;
-import com.mongodb.client.model.Projections;
 import com.mongodb.gridfs.GridFS;
 import com.mongodb.gridfs.GridFSInputFile;
 
@@ -94,9 +80,6 @@ public class EditorActivity extends Activity {
     private String audioFileUri;
     private boolean audioAdded;
 
-    private int audioDuration;
-    private int totalDisplayDuration;
-
     private boolean isRecording = false;
     private boolean isPlaying = false;
 
@@ -110,10 +93,12 @@ public class EditorActivity extends Activity {
     private TextView totalDurationTextView;
     private TextView playTimeTextView;
 
-    private ProgressDialog dialog;
+    private ProgressDialog progressDialog;
 
     private ImageButton recordButton;
     private ImageButton playButtton;
+
+    private File extDir;
 
     private Intent intent;
 
@@ -155,16 +140,22 @@ public class EditorActivity extends Activity {
 
         // System.out.println(projectFile.delete());
 
-        File extDir = this.getExternalFilesDir(null);
+        extDir = this.getExternalFilesDir(null);
 
         if (extDir != null) {
-            System.out.println("audio file path set");
-            audioFileUri = extDir.getAbsolutePath()+ "/" + serverName + "/" + collectionName + "/" + projectName + "/" + "record.mp4";
+
+            extDir = new File(extDir.getAbsolutePath()+"/" + serverName + "/" + collectionName + "/" + projectName);
+
+            if (extDir.mkdirs()) {
+                System.out.println("new external directory created");
+            }
+
+            audioFileUri = extDir.getAbsolutePath()+ "/" + "record.mp4";
         }
         audioAdded = false;
 
         if (projectFile.getParentFile().mkdirs()) {
-            System.out.println("path created");
+            System.out.println("project file path created");
         }
 
         try {
@@ -257,32 +248,22 @@ public class EditorActivity extends Activity {
 
         if (intent.resolveActivity(getPackageManager()) != null) {
 
-            File extDir = this.getExternalFilesDir(null);
-
             String state = Environment.getExternalStorageState();
             if (Environment.MEDIA_MOUNTED.equals(state) && extDir != null) {
 
                 try {
-                    File newImageFile = new File(extDir.getAbsolutePath()+ "/" + serverName + "/" + collectionName + "/" + projectName + "/" + uriList.size() + ".jpg");
+                    File newImageFile = new File(extDir.getAbsolutePath()+ "/" + uriList.size() + ".jpg");
 
-                    System.out.println(newImageFile.delete());
+                    newImageFileName = newImageFile.getAbsolutePath();
 
-                    if (newImageFile.getParentFile().mkdirs()) {
-                        System.out.println("first image!");
-                    }
+                    System.out.println("newImageFileName: "+ newImageFileName);
 
-                    if (newImageFile.createNewFile()) {
+                    intent.putExtra(MediaStore.EXTRA_OUTPUT, Uri.fromFile(newImageFile)); // set the image file name
 
-                        newImageFileName = newImageFile.getAbsolutePath();
+                    // start the image capture Intent
+                    startActivityForResult(intent, REQUEST_IMAGE_CAPTURE);
 
-                        System.out.println("newImageFileName: "+ newImageFileName);
-
-                        intent.putExtra(MediaStore.EXTRA_OUTPUT, Uri.fromFile(newImageFile)); // set the image file name
-
-                        // start the image capture Intent
-                        startActivityForResult(intent, REQUEST_IMAGE_CAPTURE);
-                    }
-                } catch (IOException e) {
+                } catch (Exception e) {
                     System.err.println(e.getMessage());
                 }
             } else {
@@ -426,7 +407,6 @@ public class EditorActivity extends Activity {
         MediaPlayer mp = MediaPlayer.create(this, Uri.parse(uri));
         long duration = mp.getDuration();
         System.out.println("duration: " + duration + " ms");
-        System.out.println(String.format("%02d", TimeUnit.MILLISECONDS.toMinutes(duration)));
         totalDurationTextView.setText(
                 String.format("%02d", TimeUnit.MILLISECONDS.toMinutes(duration)) + ":" +
                         String.format("%02d", TimeUnit.MILLISECONDS.toSeconds(duration) -
@@ -507,9 +487,8 @@ public class EditorActivity extends Activity {
                     }
                     if (imageNodeDisplayDuration != null) {
                         if (!imageNodeDisplayDuration.isEmpty()) {
-                            System.out.println("adding duration: "+imageNodeDisplayDuration);
+                            System.out.println("adding duration: " + imageNodeDisplayDuration);
                             displayDurationList.add(Integer.parseInt(imageNodeDisplayDuration));
-                            totalDisplayDuration += Integer.parseInt(imageNodeDisplayDuration);
                         }
                     }
                 }
@@ -597,7 +576,6 @@ public class EditorActivity extends Activity {
 
             uriList.remove(position);
             displayDurationList.remove(position);
-            totalDisplayDuration -= displayDurationList.get(position);
 
             return true;
 
@@ -659,10 +637,8 @@ public class EditorActivity extends Activity {
             StreamResult result = new StreamResult(projectFile);
             transformer.transform(source, result);
 
-            totalDisplayDuration -= displayDurationList.get(position);
             displayDurationList.remove(position);
 
-            totalDisplayDuration += duration;
             displayDurationList.add(position, duration);
 
             return true;
@@ -723,7 +699,6 @@ public class EditorActivity extends Activity {
 
                 uriList.add(imageUri);
                 displayDurationList.add(displayDuration);
-                totalDisplayDuration += displayDuration;
 
                 System.out.println("success");
 
@@ -810,17 +785,37 @@ public class EditorActivity extends Activity {
     }
 
     public void publishProject(View view) {
-        dialog = new ProgressDialog(EditorActivity.this);
-        dialog.setProgressStyle(ProgressDialog.STYLE_SPINNER);
-        dialog.setMessage("Uploading, please wait...");
-        dialog.setIndeterminate(true);
-        dialog.setCanceledOnTouchOutside(false);
-        dialog.show();
+        AlertDialog.Builder adb = new AlertDialog.Builder(EditorActivity.this);
+        adb.setTitle("Publish?");
+        adb.setMessage("Are you sure you want to publish? A project once release cannot be unreleased.");
 
-        System.out.println("start uploading task ...");
+        adb.setNegativeButton("Cancel", null);
+        adb.setPositiveButton("Ok", new AlertDialog.OnClickListener() {
+            public void onClick(DialogInterface dialog, int which) {
+                if (uriList.size() > 0 && audioAdded) {
+                    ProgressDialog tempDialog = new ProgressDialog(EditorActivity.this);
+                    progressDialog = tempDialog;
+                    tempDialog.setProgressStyle(ProgressDialog.STYLE_SPINNER);
+                    tempDialog.setMessage("Uploading, please wait...");
+                    tempDialog.setIndeterminate(true);
+                    tempDialog.setCanceledOnTouchOutside(false);
+                    tempDialog.show();
 
-        ProjectReleaseTask task = new ProjectReleaseTask();
-        task.execute();
+                    System.out.println("start uploading task ...");
+
+                    ProjectReleaseTask task = new ProjectReleaseTask();
+                    task.execute();
+                } else {
+                    AlertDialog.Builder alert = new AlertDialog.Builder(EditorActivity.this);
+
+                    alert.setTitle("Error");
+                    alert.setMessage("Audio recording and at least 1 Image are mandatory.");
+
+                    alert.show();
+                }
+            }
+        });
+        adb.show();
     }
 
     private class ProjectReleaseTask extends DatabaseTask {
@@ -841,8 +836,8 @@ public class EditorActivity extends Activity {
          * the result from doInBackground() */
         protected void onPostExecute(String[] result) {
 
-            if (dialog != null) {
-                dialog.dismiss();
+            if (progressDialog != null) {
+                progressDialog.dismiss();
             }
 
             if (result == null) {
@@ -854,6 +849,7 @@ public class EditorActivity extends Activity {
                 adb.show();
             }
             else {
+
                 Intent intent = new Intent(EditorActivity.this, ProjectsActivity.class);
 
                 intent.putExtra(getString(R.string.stringExtraProjectName), projectName);
@@ -861,20 +857,52 @@ public class EditorActivity extends Activity {
                 // Set The Result in Intent
                 setResult(REQUEST_PROJECT_RELEASE, intent);
 
+                try {
+                    File newFile = new File(projectFile.getParent()+projectName+"(remote).xml");
+                    System.out.println("new project name: "+newFile.getAbsolutePath());
+                    if (newFile.exists()){
+                        System.out.println("file already exists");
+                    }
+                    // Rename file (or directory)
+                    if (!projectFile.renameTo(newFile)) {
+                        // File was not successfully renamed
+                        System.out.println("rename failed");
+                    }
+                }
+                catch (Exception e) {
+                    System.out.println(e.getMessage());
+                }
+
+                try {
+                    File newDir = new File(extDir.getParent()+projectName+"(remote)");
+                    System.out.println("new ext dir: "+newDir.getAbsolutePath());
+                    if (!newDir.exists()){
+                        System.out.println("new directory lready exists");
+                    }
+                    // Rename file (or directory)
+                    if (!projectFile.renameTo(newDir)) {
+                        // File was not successfully renamed
+                        System.out.println("rename failed");
+                    }
+                }
+                catch (Exception e) {
+                    System.out.println(e.getMessage());
+                }
+
                 finish();
             }
         }
         protected boolean upload() {
+
             try {
-
-                ArrayList<String> projects = new ArrayList<>();
-
                 MongoCollection<org.bson.Document> collection = getMongoDB().getCollection(collectionName);
 
                 org.bson.BsonDocument projectDocument = new org.bson.BsonDocument();
 
                 // Construct a BsonWriter
                 BsonWriter writer = new BsonDocumentWriter(projectDocument);
+
+                System.out.println("open writer");
 
                 writer.writeStartDocument();
                 writer.writeName("name");
@@ -894,7 +922,11 @@ public class EditorActivity extends Activity {
                 writer.writeEndArray();
                 writer.writeEndDocument();
 
+                System.out.println("close writer");
+
                 collection.insertOne(org.bson.Document.parse(projectDocument.toJson()));
+
+                System.out.println("insert project meta");
 
                 // Now let's store the binary file data using filestore GridFS
                 GridFS fileStore = new GridFS(getMongoClient().getDB(serverName), collectionName + "/" + projectName);
@@ -902,13 +934,17 @@ public class EditorActivity extends Activity {
                 GridFSInputFile inFile = fileStore.createFile(install);
                 inFile.setFilename("record.mp4");
                 inFile.save();
+                System.out.println("audio data uploaded");
                 for (int i = 0; i < uriList.size(); i++) {
                     //save the a file
                     install = new File(uriList.get(i));
                     inFile = fileStore.createFile(install);
                     inFile.setFilename(uriList.get(i).substring(uriList.get(i).lastIndexOf("/") + 1));
                     inFile.save();
+                    System.out.println("image uploaded");
                 }
+
+                System.out.println("uploaded complete");
 
                 return true;
 

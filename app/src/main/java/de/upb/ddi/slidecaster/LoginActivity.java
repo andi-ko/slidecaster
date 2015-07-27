@@ -94,10 +94,10 @@ public class LoginActivity extends Activity {
 
                 ArrayList<String> publicCollections = new ArrayList<>();
 
-                for (String collection : allCollections) {
-                    System.out.println("Collection name: " + collection);
-                    if (!collection.equals("system.indexes")) {
-                        publicCollections.add(collection);
+                for (String collectionName : allCollections) {
+                    System.out.println("Collection name: " + collectionName);
+                    if (!collectionName.equals("system.indexes") && !collectionName.contains("/")) {
+                        publicCollections.add(collectionName);
                     }
                 }
                 String[] result = new String[publicCollections.size()];

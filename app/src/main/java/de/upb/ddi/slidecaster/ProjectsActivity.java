@@ -89,7 +89,7 @@ public class ProjectsActivity extends Activity {
         readProjectList(projectListFile);
 
         for ( int i = 0; i < remoteProjectNames.size(); i++) {
-            addProjectToList(remoteProjectNames.get(i)+" (remote)");
+            addProjectToList(remoteProjectNames.get(i)+"(remote)");
         }
 
         adapter = new ArrayAdapter<>(this,
@@ -99,11 +99,19 @@ public class ProjectsActivity extends Activity {
 
         projectsListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             public void onItemClick(AdapterView<?> parent, View v, int position, long id) {
-                Intent intent = new Intent(ProjectsActivity.this, EditorActivity.class);
-                intent.putExtra(getString(R.string.stringExtraServerName), serverName);
-                intent.putExtra(getString(R.string.stringExtraCollectionName), collectionName);
-                intent.putExtra(getString(R.string.stringExtraProjectName), projectNames.get(position));
-                startActivity(intent);
+
+                Intent intent;
+
+                if (!projectNames.get(position).endsWith("(remote)")) {
+                    intent = new Intent(ProjectsActivity.this, EditorActivity.class);
+                    intent.putExtra(getString(R.string.stringExtraServerName), serverName);
+                    intent.putExtra(getString(R.string.stringExtraCollectionName), collectionName);
+                    intent.putExtra(getString(R.string.stringExtraProjectName), projectNames.get(position));
+                    startActivity(intent);
+                }
+                else {
+                    // TODO: launch player
+                }
             }
         });
 
@@ -125,8 +133,9 @@ public class ProjectsActivity extends Activity {
                     adb.setNegativeButton("Cancel", null);
                     adb.setPositiveButton("Ok", new AlertDialog.OnClickListener() {
                         public void onClick(DialogInterface dialog, int which) {
-                            removeProjectFromList(positionToRemove);
-                            adapter.notifyDataSetChanged();
+                            if (removeProjectFromList(positionToRemove)) {
+                                adapter.notifyDataSetChanged();
+                            }
                         }
                     });
                 }
@@ -179,9 +188,15 @@ public class ProjectsActivity extends Activity {
             // fetch the message String
             String projectName=data.getStringExtra(getString(R.string.stringExtraProjectName));
 
-            removeProjectFromList(projectNames.indexOf(projectName));
-            addProjectToList(projectName+"(remote)");
-            adapter.notifyDataSetChanged();
+            if (removeProjectFromList(projectNames.indexOf(projectName))) {
+                if (addProjectToList(projectName+"(remote)")) {
+                    adapter.notifyDataSetChanged();
+                    AlertDialog.Builder adb = new AlertDialog.Builder(ProjectsActivity.this);
+                    adb.setTitle("Success");
+                    adb.setMessage("Your project is now listed as a remote project");
+                    adb.show();
+                }
+            }
         }
         else {
             super.onActivityResult(requestCode, resultCode, data);
@@ -262,8 +277,6 @@ public class ProjectsActivity extends Activity {
 
                 if (serverNode.getNodeType() == Node.ELEMENT_NODE) {
 
-                    Element eElement = (Element) serverNode;
-
                     projectName = ((Element) serverNode).getElementsByTagName("name").item(0).getTextContent();
 
                     System.out.println(projectName);
@@ -282,13 +295,11 @@ public class ProjectsActivity extends Activity {
         }
     }
 
-    public void removeProjectFromList(int position) {
+    public boolean removeProjectFromList(int position) {
 
         String projectName = projectNames.get(position);
 
-        System.out.println(projectName);
-
-        projectNames.remove(position);
+        System.out.println("remove: "+projectName);
 
         // Make an  instance of the DocumentBuilderFactory
         DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
@@ -313,8 +324,6 @@ public class ProjectsActivity extends Activity {
 
                 if (projectNode.getNodeType() == Node.ELEMENT_NODE) {
 
-                    Element eElement = (Element) projectNode;
-
                     System.out.println(((Element) projectNode).getElementsByTagName("name").item(0).getTextContent());
 
                     if (projectName.equals(((Element) projectNode).getElementsByTagName("name").item(0).getTextContent())) {
@@ -331,9 +340,15 @@ public class ProjectsActivity extends Activity {
             StreamResult result = new StreamResult(projectListFile);
             transformer.transform(source, result);
 
+            projectNames.remove(position);
+
+            return true;
+
         } catch (ParserConfigurationException | SAXException | TransformerException | IOException pce) {
             System.err.println(pce.getMessage());
         }
+
+        return false;
     }
 
     public boolean addProjectToList(String projectName) {
