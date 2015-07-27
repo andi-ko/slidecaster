@@ -2,6 +2,7 @@ package de.upb.ddi.slidecaster;
 
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.app.ProgressDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.ActivityInfo;
@@ -28,6 +29,9 @@ import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import org.bson.BsonDocumentWriter;
+import org.bson.BsonWriter;
+import org.bson.codecs.EncoderContext;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
@@ -44,6 +48,7 @@ import java.io.OutputStream;
 import java.sql.Time;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.concurrent.TimeUnit;
 
 import javax.xml.parsers.DocumentBuilder;
@@ -55,11 +60,17 @@ import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 
+import de.upb.ddi.slidecaster.net.DatabaseTask;
 import de.upb.ddi.slidecaster.util.CustomList;
 import de.upb.ddi.slidecaster.util.SystemUiHider;
 
 import android.R.drawable;
 
+import com.mongodb.client.MongoCollection;
+import com.mongodb.client.MongoCursor;
+import com.mongodb.client.model.Projections;
+import com.mongodb.gridfs.GridFS;
+import com.mongodb.gridfs.GridFSInputFile;
 
 
 public class EditorActivity extends Activity {
@@ -90,6 +101,8 @@ public class EditorActivity extends Activity {
     private boolean isPlaying = false;
 
     static final int REQUEST_IMAGE_CAPTURE = 1;
+    static final int REQUEST_PROJECT_PAUSE = 1;
+    static final int REQUEST_PROJECT_RELEASE = 2;
 
     private MediaPlayer mPlayer;
     private SeekBar seekbar;
@@ -97,8 +110,12 @@ public class EditorActivity extends Activity {
     private TextView totalDurationTextView;
     private TextView playTimeTextView;
 
-    ImageButton recordButton;
-    ImageButton playButtton;
+    private ProgressDialog dialog;
+
+    private ImageButton recordButton;
+    private ImageButton playButtton;
+
+    private Intent intent;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -106,6 +123,11 @@ public class EditorActivity extends Activity {
         super.onCreate(savedInstanceState);
         setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
         setContentView(R.layout.activity_editor);
+
+        intent = new Intent(this, ProjectsActivity.class);
+
+        // Set The Result in Intent
+        setResult(REQUEST_PROJECT_PAUSE, intent);
 
         recordButton = (ImageButton)findViewById(R.id.recordAudioButton);
         recordButton.setImageResource(R.drawable.ic_btn_speak_now);
@@ -121,9 +143,6 @@ public class EditorActivity extends Activity {
 
         mPlayer = null;
         mRecorder = null;
-
-        audioDuration = 0;
-        totalDisplayDuration = 0;
 
         serverName = getIntent().getStringExtra(getString(R.string.stringExtraServerName));
         collectionName = getIntent().getStringExtra(getString(R.string.stringExtraCollectionName));
@@ -341,22 +360,25 @@ public class EditorActivity extends Activity {
                 playTimeTextView.setText(
                         String.format("%02d", TimeUnit.MILLISECONDS.toMinutes(time)) + ":" +
                             String.format("%02d", TimeUnit.MILLISECONDS.toSeconds(time) -
-                                    TimeUnit.MINUTES.toSeconds(TimeUnit.MILLISECONDS.toMinutes(time))));
+                                    TimeUnit.MINUTES.toSeconds(TimeUnit.MILLISECONDS.toMinutes(time)))+" ");
                 seekbar.setProgress(time);
                 myHandler.postDelayed(this, 100);
             }
             else {
                 stopPlaying();
+                playTimeTextView.setText("");
                 seekbar.setProgress(0);
             }
         }
     };
 
     private void stopPlaying() {
-        mPlayer.release();
-        mPlayer = null;
-        playButtton.setImageResource(R.drawable.ic_media_play);
-        isPlaying = false;
+        if (mPlayer != null && isPlaying) {
+            mPlayer.release();
+            mPlayer = null;
+            playButtton.setImageResource(R.drawable.ic_media_play);
+            isPlaying = false;
+        }
     }
 
     private void startRecording() {
@@ -408,7 +430,7 @@ public class EditorActivity extends Activity {
         totalDurationTextView.setText(
                 String.format("%02d", TimeUnit.MILLISECONDS.toMinutes(duration)) + ":" +
                         String.format("%02d", TimeUnit.MILLISECONDS.toSeconds(duration) -
-                                TimeUnit.MINUTES.toSeconds(TimeUnit.MILLISECONDS.toMinutes(duration))));
+                                TimeUnit.MINUTES.toSeconds(TimeUnit.MILLISECONDS.toMinutes(duration))) + " ");
     }
 
 
@@ -624,7 +646,7 @@ public class EditorActivity extends Activity {
 
                         if (displayDurationNode != null) {
                             displayDurationNode.setTextContent(Integer.toString(duration));
-                            System.out.println("new duration: "+duration);
+                            System.out.println("new duration: " + duration);
                         }
                     }
                 }
@@ -785,6 +807,116 @@ public class EditorActivity extends Activity {
         }
 
         return super.onOptionsItemSelected(item);
+    }
+
+    public void publishProject(View view) {
+        dialog = new ProgressDialog(EditorActivity.this);
+        dialog.setProgressStyle(ProgressDialog.STYLE_SPINNER);
+        dialog.setMessage("Uploading, please wait...");
+        dialog.setIndeterminate(true);
+        dialog.setCanceledOnTouchOutside(false);
+        dialog.show();
+
+        System.out.println("start uploading task ...");
+
+        ProjectReleaseTask task = new ProjectReleaseTask();
+        task.execute();
+    }
+
+    private class ProjectReleaseTask extends DatabaseTask {
+
+        @Override
+        protected String[] doInBackground(String... params) {
+            if (assertConnection()) {
+                if (upload()){
+                    String[] retValues = new String[1];
+                    retValues[0] = projectName;
+                    return retValues;
+                }
+            }
+            return null;
+        }
+
+        /** The system calls this to perform work in the UI thread and delivers
+         * the result from doInBackground() */
+        protected void onPostExecute(String[] result) {
+
+            if (dialog != null) {
+                dialog.dismiss();
+            }
+
+            if (result == null) {
+                AlertDialog.Builder adb=new AlertDialog.Builder(EditorActivity.this);
+
+                adb.setTitle("Error");
+                adb.setMessage("Upload failed.");
+
+                adb.show();
+            }
+            else {
+                Intent intent = new Intent(EditorActivity.this, ProjectsActivity.class);
+
+                intent.putExtra(getString(R.string.stringExtraProjectName), projectName);
+
+                // Set The Result in Intent
+                setResult(REQUEST_PROJECT_RELEASE, intent);
+
+                finish();
+            }
+        }
+        protected boolean upload() {
+            try {
+
+                ArrayList<String> projects = new ArrayList<>();
+
+                MongoCollection<org.bson.Document> collection = getMongoDB().getCollection(collectionName);
+
+                org.bson.BsonDocument projectDocument = new org.bson.BsonDocument();
+
+                // Construct a BsonWriter
+                BsonWriter writer = new BsonDocumentWriter(projectDocument);
+
+                writer.writeStartDocument();
+                writer.writeName("name");
+                writer.writeString(projectName);
+                writer.writeName("audioFile");
+                writer.writeString("record.mp4");
+                writer.writeName("images");
+                writer.writeStartArray();
+                for (int i = 0; i < uriList.size(); i++) {
+                    writer.writeStartDocument();
+                    writer.writeName("imageFile");
+                    writer.writeString(uriList.get(i).substring(uriList.get(i).lastIndexOf("/")+1));
+                    writer.writeName("displayDuration");
+                    writer.writeInt32(displayDurationList.get(i));
+                    writer.writeEndDocument();
+                }
+                writer.writeEndArray();
+                writer.writeEndDocument();
+
+                collection.insertOne(org.bson.Document.parse(projectDocument.toJson()));
+
+                // Now let's store the binary file data using filestore GridFS
+                GridFS fileStore = new GridFS(getMongoClient().getDB(serverName), collectionName + "/" + projectName);
+                File install = new File(audioFileUri);
+                GridFSInputFile inFile = fileStore.createFile(install);
+                inFile.setFilename("record.mp4");
+                inFile.save();
+                for (int i = 0; i < uriList.size(); i++) {
+                    //save the a file
+                    install = new File(uriList.get(i));
+                    inFile = fileStore.createFile(install);
+                    inFile.setFilename(uriList.get(i).substring(uriList.get(i).lastIndexOf("/") + 1));
+                    inFile.save();
+                }
+
+                return true;
+
+            } catch (Exception e) {
+                System.err.println(e.getMessage());
+            }
+            return false;
+        }
     }
 
 }

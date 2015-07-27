@@ -57,6 +57,8 @@ public class ProjectsActivity extends Activity {
 
     private File projectListFile;
 
+    static final int REQUEST_PROJECT_RELEASE = 2;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         System.out.println("=========================== ProjectsActivity: onCreate(): begin ===========================");
@@ -172,14 +174,13 @@ public class ProjectsActivity extends Activity {
     protected void onActivityResult(int requestCode, int resultCode, Intent data)
     {
         // check if the request code is same as what is passed, here it is 2
-        if(requestCode==2 && data != null)
+        if(requestCode==REQUEST_PROJECT_RELEASE && data != null)
         {
             // fetch the message String
-            String projectReleaseName=data.getStringExtra(getString(R.string.stringExtraProjectName));
             String projectName=data.getStringExtra(getString(R.string.stringExtraProjectName));
 
             removeProjectFromList(projectNames.indexOf(projectName));
-            addProjectToList(projectReleaseName);
+            addProjectToList(projectName+"(remote)");
             adapter.notifyDataSetChanged();
         }
         else {
