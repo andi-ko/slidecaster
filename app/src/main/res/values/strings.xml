@@ -27,6 +27,7 @@
     <string name="stringExtraProjectName">PROJECT_NAME</string>
     <string name="stringExtraProjectReleaseName">PROJECT_NAME_RELEASE</string>
     <string name="stringExtraProjectNameList">PROJECT_NAME_LIST</string>
+    <string name="stringExtraProjectFilePath">PROJECT_FILE_PATH</string>
 
     <string name="title_activity_player">PlayerActivity</string>
     <string name="dummy_button">Dummy Button</string>

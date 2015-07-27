@@ -59,7 +59,7 @@ import com.mongodb.gridfs.GridFSInputFile;
 
 public class EditorActivity extends Activity {
 
-    private static final String LOG_TAG = "AudioRecordTest";
+    private static final String LOG_TAG = "AudioRecorder";
 
     private MediaRecorder mRecorder;
 
@@ -165,7 +165,11 @@ public class EditorActivity extends Activity {
             e.printStackTrace();
         }
 
-        readProjectData(projectFile);
+        uriList = new ArrayList<>();
+        displayDurationList = new ArrayList<>();
+
+        audioFileUri = XMLHelpers.readProjectData(projectFile, uriList, displayDurationList);
+        loadAudio(audioFileUri);
 
         adapter = new CustomList(EditorActivity.this, uriList, displayDurationList);
         ListView list = (ListView)findViewById(R.id.imageListView);
@@ -400,98 +404,16 @@ public class EditorActivity extends Activity {
     }
 
     private void loadAudio(String uri) {
-        System.out.println("loading audio");
-        audioAdded = true;
-        MediaPlayer mp = MediaPlayer.create(this, Uri.parse(uri));
-        long duration = mp.getDuration();
-        System.out.println("duration: " + duration + " ms");
-        totalDurationTextView.setText(
-                String.format("%02d", TimeUnit.MILLISECONDS.toMinutes(duration)) + ":" +
-                        String.format("%02d", TimeUnit.MILLISECONDS.toSeconds(duration) -
-                                TimeUnit.MINUTES.toSeconds(TimeUnit.MILLISECONDS.toMinutes(duration))) + " ");
-    }
-
-    public void readProjectData(File projectFile) {
-
-        System.out.println("reading project file");
-
-        uriList = new ArrayList<>();
-        displayDurationList = new ArrayList<>();
-
-        // Make an  instance of the DocumentBuilderFactory
-        DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
-        try {
-            // use the factory to take an instance of the document builder
-            DocumentBuilder db = dbf.newDocumentBuilder();
-            // parse using the builder to get the DOM mapping of the
-            // XML file
-            Document dom = db.parse(projectFile);
-
-            //optional, but recommended
-            //read this - http://stackoverflow.com/questions/13786607/normalization-in-dom-parsing-with-java-how-does-it-work
-            dom.getDocumentElement().normalize();
-
-            Element doc = dom.getDocumentElement();
-
-            NodeList imageList = doc.getElementsByTagName("image");
-
-            for (int i = 0; i < imageList.getLength(); i++) {
-
-                Node imageNode = imageList.item(i);
-
-                if (imageNode.getNodeType() == Node.ELEMENT_NODE) {
-
-                    Element eElement = (Element) imageNode;
-
-                    String imageNodeUri = eElement.getElementsByTagName("uri").item(0).getTextContent();
-
-                    String imageNodeDisplayDuration = eElement.getElementsByTagName("displayDuration").item(0).getTextContent();
-
-                    System.out.println(imageNodeUri);
-                    System.out.println(imageNodeDisplayDuration);
-
-                    if (imageNodeUri != null) {
-                        if (!imageNodeUri.isEmpty()) {
-                            System.out.println("adding image: "+imageNodeUri);
-                            uriList.add(imageNodeUri);
-                        }
-                    }
-                    if (imageNodeDisplayDuration != null) {
-                        if (!imageNodeDisplayDuration.isEmpty()) {
-                            System.out.println("adding duration: " + imageNodeDisplayDuration);
-                            displayDurationList.add(Integer.parseInt(imageNodeDisplayDuration));
-                        }
-                    }
-                }
-            }
-
-            NodeList audioList = doc.getElementsByTagName("audio");
-
-            for (int i = 0; i < audioList.getLength(); i++) {
-
-                Node audioNode = audioList.item(i);
-
-                if (audioNode.getNodeType() == Node.ELEMENT_NODE) {
-
-                    Element eElement = (Element) audioNode;
-
-                    String audioNodeUri = eElement.getElementsByTagName("uri").item(0).getTextContent();
-
-                    System.out.println(audioNodeUri);
-
-                    if (audioNodeUri != null) {
-                        if (!audioNodeUri.isEmpty()) {
-                            audioFileUri = audioNodeUri;
-                            loadAudio(audioFileUri);
-                        }
-                    }
-                }
-            }
-
-        } catch (ParserConfigurationException pce) {
-            System.err.println(pce.getMessage());
-        } catch (SAXException | IOException e) {
-            e.printStackTrace();
+        if (uri != null) {
+            System.out.println("loading audio");
+            audioAdded = true;
+            MediaPlayer mp = MediaPlayer.create(this, Uri.parse(uri));
+            long duration = mp.getDuration();
+            System.out.println("duration: " + duration + " ms");
+            totalDurationTextView.setText(
+                    String.format("%02d", TimeUnit.MILLISECONDS.toMinutes(duration)) + ":" +
+                            String.format("%02d", TimeUnit.MILLISECONDS.toSeconds(duration) -
+                                    TimeUnit.MINUTES.toSeconds(TimeUnit.MILLISECONDS.toMinutes(duration))) + " ");
         }
     }
 

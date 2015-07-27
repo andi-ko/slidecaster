@@ -57,15 +57,6 @@
         android:layout_toEndOf="@+id/recordAudioButton"
         android:onClick="cameraButttonPressed" />
 
-    <ImageButton
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:id="@+id/imageButton"
-        android:src="@android:drawable/ic_input_add"
-        android:layout_alignTop="@+id/takePictureButton"
-        android:layout_toRightOf="@+id/takePictureButton"
-        android:layout_toEndOf="@+id/takePictureButton" />
-
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"

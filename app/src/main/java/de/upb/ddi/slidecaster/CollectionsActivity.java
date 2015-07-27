@@ -6,7 +6,11 @@ import android.app.ProgressDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.Bundle;
+import android.text.InputFilter;
 import android.text.InputType;
+import android.text.Spanned;
+import android.text.method.DigitsKeyListener;
+import android.text.method.TextKeyListener;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -82,6 +86,19 @@ public class CollectionsActivity extends Activity {
         final EditText input = new EditText(CollectionsActivity.this);
         // Specify the type of input expected
         input.setInputType(InputType.TYPE_CLASS_TEXT);
+        input.setFilters(new InputFilter[]{
+            new InputFilter() {
+                public CharSequence filter(CharSequence source, int start, int end,
+                                           Spanned dest, int dstart, int dend) {
+                    for (int i = start; i < end; i++) {
+                        if (!Character.isLetterOrDigit(source.charAt(i))) {
+                            return "";
+                        }
+                    }
+                    return null;
+                }
+            }
+        });
         builder.setView(input);
 
         // Set up the buttons

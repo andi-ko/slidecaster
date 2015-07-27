@@ -1,16 +1,26 @@
 package de.upb.ddi.slidecaster;
 
 import de.upb.ddi.slidecaster.util.SystemUiHider;
+import de.upb.ddi.slidecaster.util.XMLHelpers;
 
 import android.annotation.TargetApi;
 import android.app.Activity;
+import android.media.MediaPlayer;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
+import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.MenuItem;
 import android.support.v4.app.NavUtils;
+import android.widget.ImageView;
+
+import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.concurrent.TimeUnit;
 
 
 /**
@@ -47,6 +57,22 @@ public class PlayerActivity extends Activity {
      * The instance of the {@link SystemUiHider} for this activity.
      */
     private SystemUiHider mSystemUiHider;
+
+    private ArrayList<String> uriList;
+    private ArrayList<Integer> displayDurationList;
+
+    private String audioFileUri;
+
+    private boolean isPlaying = false;
+
+    private MediaPlayer mPlayer;
+    private boolean audioAdded;
+
+    private Handler myHandler;
+
+    private ImageView imageView;
+
+    private int currentImagePosition;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -123,6 +149,86 @@ public class PlayerActivity extends Activity {
         // operations to prevent the jarring behavior of controls going away
         // while interacting with the UI.
         findViewById(R.id.playerActivityImageView).setOnTouchListener(mDelayHideTouchListener);
+
+        imageView = (ImageView)findViewById(R.id.playerActivityImageView);
+
+        uriList = new ArrayList<>();
+        displayDurationList = new ArrayList<>();
+
+        File projectFile = new File(getIntent().getStringExtra(getString(R.string.stringExtraProjectFilePath)));
+
+        audioFileUri = XMLHelpers.readProjectData(projectFile, uriList, displayDurationList);
+        loadAudio(audioFileUri);
+
+        currentImagePosition = 0;
+
+        myHandler = new Handler();
+        startPlaying();
+    }
+
+    private Runnable RunSlideshow = new Runnable() {
+
+        int time;
+        int nextImageAt = 0;
+
+        public void run() {
+            if (mPlayer != null && mPlayer.isPlaying()) {
+                time = mPlayer.getDuration();
+
+                if (time > nextImageAt && uriList.size() > currentImagePosition) {
+                    nextImageAt += (displayDurationList.get(currentImagePosition) * 5000);
+                    imageView.setImageURI(Uri.parse(uriList.get(currentImagePosition)));
+
+                    currentImagePosition++;
+                }
+                myHandler.postDelayed(this, 100);
+            }
+            else {
+                stopPlaying();
+                finish();
+            }
+        }
+    };
+
+    public void onPlay(View view) {
+        if(audioAdded) {
+            if (!isPlaying) {
+                startPlaying();
+            } else {
+                stopPlaying();
+            }
+        }
+    }
+
+    private void startPlaying() {
+        mPlayer = new MediaPlayer();
+        try {
+            mPlayer.setDataSource(audioFileUri);
+            mPlayer.prepare();
+            myHandler.postDelayed(RunSlideshow, 0);
+            mPlayer.start();
+        } catch (IOException e) {
+            System.err.println(e.getMessage());
+        }
+        isPlaying = true;
+    }
+
+    private void stopPlaying() {
+        if (mPlayer != null && isPlaying) {
+            mPlayer.release();
+            mPlayer = null;
+            isPlaying = false;
+        }
+    }
+
+    private void loadAudio(String uri) {
+        if (uri != null) {
+            System.out.println("loading audio");
+            audioAdded = true;
+            MediaPlayer mp = MediaPlayer.create(this, Uri.parse(uri));
+            long duration = mp.getDuration();
+            System.out.println("duration: " + duration + " ms");
+        }
     }
 
     @Override

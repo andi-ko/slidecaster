@@ -7,7 +7,10 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.Bundle;
 import android.os.Environment;
+import android.text.InputFilter;
 import android.text.InputType;
+import android.text.Spanned;
+import android.text.method.DigitsKeyListener;
 import android.util.Xml;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -383,6 +386,12 @@ public class ProjectsActivity extends Activity {
         intent.putExtra(getString(R.string.stringExtraServerName), serverName);
         intent.putExtra(getString(R.string.stringExtraCollectionName), collectionName);
 
+        String projectFilePath = this.getFilesDir().getPath() + "/"+serverName+"/"+collectionName+"/"+projectName+".xml";
+
+        System.out.println(projectFilePath);
+
+        intent.putExtra(getString(R.string.stringExtraProjectFilePath), projectFilePath);
+
         startActivity(intent);
     }
 
@@ -397,6 +406,19 @@ public class ProjectsActivity extends Activity {
         final EditText input = new EditText(this);
         // Specify the type of input expected
         input.setInputType(InputType.TYPE_CLASS_TEXT);
+        input.setFilters(new InputFilter[]{
+                new InputFilter() {
+                    public CharSequence filter(CharSequence source, int start, int end,
+                                               Spanned dest, int dstart, int dend) {
+                        for (int i = start; i < end; i++) {
+                            if (!Character.isLetterOrDigit(source.charAt(i))) {
+                                return "";
+                            }
+                        }
+                        return null;
+                    }
+                }
+        });
         builder.setView(input);
 
         // Set up the buttons
