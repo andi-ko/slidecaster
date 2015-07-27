@@ -12,7 +12,8 @@
         android:text="Add Collection"
         android:id="@+id/addCollectionButton"
         android:layout_alignParentTop="true"
-        android:layout_alignParentLeft="true" />
+        android:layout_alignParentLeft="true"
+        android:onClick="addCollection" />
 
     <ListView
         android:layout_width="wrap_content"

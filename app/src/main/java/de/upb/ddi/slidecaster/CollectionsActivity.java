@@ -3,13 +3,17 @@ package de.upb.ddi.slidecaster;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.ProgressDialog;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.Bundle;
+import android.text.InputType;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
+import android.widget.Button;
+import android.widget.EditText;
 import android.widget.ListView;
 
 import com.mongodb.DBCollection;
@@ -30,6 +34,7 @@ import de.upb.ddi.slidecaster.net.DatabaseTask;
 public class CollectionsActivity extends Activity {
 
     private ArrayList<String> collectionNames;
+    ArrayAdapter<String> adapter;
 
     private String serverName;
     private ProgressDialog dialog;
@@ -45,13 +50,13 @@ public class CollectionsActivity extends Activity {
         serverName = getIntent().getStringExtra(getString(R.string.stringExtraServerName));
         collectionNames = getIntent().getStringArrayListExtra(getString(R.string.stringExtraCollectionNameList));
 
-        ArrayAdapter<String> adapter = new ArrayAdapter<>(this,
+        adapter = new ArrayAdapter<>(this,
                 android.R.layout.simple_list_item_1, collectionNames);
 
         collectionsListView.setAdapter(adapter);
 
-        collectionsListView.setOnItemClickListener(new AdapterView.OnItemClickListener(){
-            public void onItemClick(AdapterView<?> parent, View v, int position, long id){
+        collectionsListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            public void onItemClick(AdapterView<?> parent, View v, int position, long id) {
                 dialog = new ProgressDialog(CollectionsActivity.this);
                 dialog.setProgressStyle(ProgressDialog.STYLE_SPINNER);
                 dialog.setMessage("Connecting, please wait...");
@@ -65,6 +70,94 @@ public class CollectionsActivity extends Activity {
                 task.execute(collectionNames.get(position));
             }
         });
+    }
+
+    public void addCollection(View view) {
+        AlertDialog.Builder builder = new AlertDialog.Builder(CollectionsActivity.this);
+        builder.setTitle("Title");
+
+        builder.setMessage("Enter title for new collection");
+
+        // Set up the input
+        final EditText input = new EditText(CollectionsActivity.this);
+        // Specify the type of input expected
+        input.setInputType(InputType.TYPE_CLASS_TEXT);
+        builder.setView(input);
+
+        // Set up the buttons
+        builder.setPositiveButton("OK", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialogIf, int which) {
+                String projectName = input.getText().toString();
+                if (projectName.length() > 0) {
+                    dialog = new ProgressDialog(CollectionsActivity.this);
+                    dialog.setProgressStyle(ProgressDialog.STYLE_SPINNER);
+                    dialog.setMessage("Adding collection, please wait...");
+                    dialog.setIndeterminate(true);
+                    dialog.setCanceledOnTouchOutside(false);
+                    dialog.show();
+
+                    System.out.println("start fetching task ...");
+
+                    AddCollectionTask task = new AddCollectionTask();
+                    task.execute(input.getText().toString());
+                }
+            }
+        });
+        builder.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                dialog.cancel();
+            }
+        });
+
+        builder.show();
+    }
+
+    private class AddCollectionTask extends DatabaseTask {
+
+        @Override
+        protected String[] doInBackground(String... params) {
+            if (assertConnection()) {
+                String collectionName = params[0];
+                if (addRemoteCollection(collectionName)){
+                    return new String[1];
+                }
+            }
+            return null;
+        }
+
+        /** The system calls this to perform work in the UI thread and delivers
+         * the result from doInBackground() */
+        protected void onPostExecute(String[] result) {
+
+            adapter.notifyDataSetChanged();
+
+            if (dialog != null) {
+                dialog.dismiss();
+            }
+            if (result == null) {
+                AlertDialog.Builder adb=new AlertDialog.Builder(CollectionsActivity.this);
+
+                adb.setTitle("Error");
+                adb.setMessage("Connection to database cannot be established");
+
+                adb.show();
+            }
+        }
+
+        protected boolean addRemoteCollection(String collectionName) {
+            try {
+                getMongoDB().createCollection(collectionName);
+
+                collectionNames.add(collectionName);
+                return true;
+
+            } catch (Exception e) {
+                System.err.println(e.getMessage());
+            }
+            return false;
+        }
     }
 
     private class ProjectsFetchTask extends DatabaseTask {

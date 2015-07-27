@@ -76,7 +76,7 @@
         <activity
             android:name=".PlayerActivity"
             android:configChanges="orientation|keyboardHidden|screenSize"
-            android:label="@string/title_activity_player"
+            android:label="Player"
             android:launchMode="singleTop"
             android:parentActivityName=".ProjectsActivity"
             android:theme="@style/FullscreenTheme" >
